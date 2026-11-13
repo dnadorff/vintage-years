@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vintage Years</title>
+<meta name="description" content="A family winemaking game of timing for 1 to 6 players, with robots and linked phones.">
+<meta name="theme-color" content="#F6F1E7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17110F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vintage Years">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#F6F1E7; --surface:#FFFDF8; --ink:#2B1D22; --muted:#665559; --line:#E1D4C3; --soft:#EFE6D8;
+  --accent:#7A1F3D; --accent-ink:#FFFFFF; --good:#3D7A3A; --bad:#B23A3A; --focus:#1F6FEB;
+  --red:#8E1B3A; --rose:#EE9DB3; --white:#F2D86A;
+  --hill:#D5E5B9; --river-land:#F1D6BF; --meadow:#C6E2D9; --water:#A8CDE6;
+  --rH:#4F7F2F; --rR:#B4572E; --rM:#2A7570;
+  --cask:#8A5A2B; --vine:#6A3D9A; --trellis:#3B3B3B;
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17110F; --surface:#221A18; --ink:#F3E9E4; --muted:#BCA9A6; --line:#3E302D; --soft:#2C2220;
+    --accent:#E0789A; --accent-ink:#1A0B10; --good:#7BC47A; --bad:#F08080; --focus:#7AB4FF;
+    --hill:#3B4A2B; --river-land:#4D3627; --meadow:#24433E; --water:#2E4F66;
+    --rH:#9CCB78; --rR:#F0A079; --rM:#7CCFC6; --cask:#D8A46A; --vine:#C29BEA; --trellis:#D8D8D8;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+body{padding:0 max(14px,env(safe-area-inset-right,0px)) 32px max(14px,env(safe-area-inset-left,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:20}
+.app{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2,h3{font-family:var(--font-display);margin:0;line-height:1.15}
+h1{font-size:2.3rem} h2{font-size:1.4rem} h3{font-size:1.08rem}
+p{margin:0} .muted{color:var(--muted)} .small{font-size:.88rem} .center{text-align:center}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px} [tabindex="-1"]:focus{outline:none}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.brand{font-family:var(--font-display);font-weight:700;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.brand svg{width:26px;height:26px}
+.meta{font-size:.88rem;color:var(--muted)}
+.btn{font:inherit;font-weight:700;font-size:1rem;border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;color:var(--ink);background:var(--surface);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn-small{width:auto;padding:7px 12px;font-size:.9rem;border-radius:999px}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 120px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--soft);padding:4px;border-radius:12px}
+.seg button{font:inherit;font-weight:700;font-size:.92rem;padding:9px 6px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18)}
+label{font-weight:700;font-size:.92rem}
+input[type=text]{font:inherit;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+select{font:inherit;padding:9px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.seat{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.xbtn{font:inherit;font-weight:700;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:0 0 auto;font:inherit;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;color:var(--ink);min-width:80px}
+.chip .n{font-weight:700;font-size:.86rem;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .s{font-size:.78rem;color:var(--muted)}
+.chip.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.yearcard{display:flex;flex-direction:column;gap:6px}
+.yearline{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:.9rem;padding:4px 10px;border-radius:999px;border:1.5px solid currentColor}
+.tag.H{color:var(--rH)}.tag.R{color:var(--rR)}.tag.M{color:var(--rM)}
+.tag.C{color:var(--cask)}.tag.V{color:var(--vine)}.tag.T{color:var(--trellis)}
+.prompt{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:.95rem}
+.prompt.bonus{background:var(--accent);color:var(--accent-ink)}
+.mapwrap{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;overflow:hidden}
+svg.map{display:block;width:100%;height:auto;touch-action:manipulation}
+.map .tap{fill:transparent;cursor:pointer}
+.map .glow{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-dasharray:4 3;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{stroke-opacity:.35}}
+@media (prefers-reduced-motion: reduce){.map .glow{animation:none}}
+.workers{overflow-x:auto}
+.grid{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.78rem;width:100%;table-layout:fixed;min-width:340px}
+.grid th,.grid td{border:1px solid var(--line);text-align:center;padding:3px 0;height:24px}
+.grid th{font-weight:700;color:var(--muted);font-size:.7rem}
+.grid td.now{background:var(--soft);outline:2px solid var(--accent);outline-offset:-2px}
+.grid td.extra,.grid th.extra{background:repeating-linear-gradient(45deg,transparent 0 4px,var(--soft) 4px 6px)}
+.grid .wk{width:30px}
+.wdot{display:inline-block;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:middle}
+.wdot.red{background:var(--red)}.wdot.rose{background:var(--rose)}.wdot.white{background:var(--white)}
+.res{display:flex;flex-direction:column;gap:10px}
+.track{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.cask{width:22px;height:22px;border-radius:6px;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:.7rem;font-weight:700}
+.cask.have{background:var(--cask);border:1.5px solid var(--cask);color:#fff}
+.cask.used{background:transparent;border:1.5px solid var(--cask);color:var(--cask);text-decoration:line-through}
+.vine{width:22px;height:22px;border-radius:50% 50% 6px 6px;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:.62rem;font-weight:700;position:relative}
+.vine.have{background:var(--vine);border:1.5px solid var(--vine);color:#fff}
+.vine.bonus{border-color:var(--accent);border-style:solid}
+.trow{display:grid;grid-template-columns:repeat(5,22px) 1fr;gap:3px;align-items:center}
+.tbox{width:22px;height:22px;border-radius:5px;border:1.5px dashed var(--line);display:grid;place-items:center;font-weight:800;font-size:.8rem}
+.tbox.have{border:1.5px solid var(--trellis);color:var(--trellis)}
+.trow .rule{font-size:.84rem;padding-left:6px}
+.trow.done .rule{font-weight:700;color:var(--good)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.score-line{font-size:.9rem}
+table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.9rem}
+table.scores th,table.scores td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:right}
+table.scores th:first-child,table.scores td:first-child{text-align:left}
+table.scores tr.win td{font-weight:800}
+.banner{background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:16px;text-align:center}
+.banner .big{font-family:var(--font-display);font-size:1.7rem;font-weight:700}
+.codebig{font-family:var(--font-display);font-weight:700;font-size:2rem;letter-spacing:.06em;text-align:center;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:12px 8px}
+input.code{font-family:var(--font-display);font-weight:700;font-size:1.4rem;letter-spacing:.1em;text-align:center;text-transform:uppercase}
+.msg{font-weight:700;font-size:.95rem}.msg.bad{color:var(--bad)}.msg.good{color:var(--good)}
+dialog{border:0;border-radius:18px;padding:0;background:var(--surface);color:var(--ink);width:min(92vw,480px);max-height:86vh}
+dialog::backdrop{background:rgba(15,8,10,.6)}
+.dlg{padding:16px;display:flex;flex-direction:column;gap:10px;max-height:86vh;overflow:auto}
+.dlg ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.handoff{text-align:center;padding:30px 0 10px;display:flex;flex-direction:column;gap:14px;align-items:center}
+.handoff .big{font-family:var(--font-display);font-size:2rem;font-weight:700}
+.log{font-size:.88rem;display:flex;flex-direction:column;gap:3px}
+.hero{padding:18px 0 4px;display:flex;flex-direction:column;gap:8px}
+.hero .tagline{color:var(--accent);font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.8rem}
+.thinking{font-style:italic;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4h14c0 8-2 12-7 13-5-1-7-5-7-13z" fill="#8E1B3A"/><path d="M16 17v8m-5 3h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Vintage Years</span></div>
+    <div class="meta" id="meta"></div>
+    <button class="btn btn-small" id="menuBtn" type="button">Menu</button>
+  </header>
+  <div class="sr" role="status" aria-live="polite" id="live"></div>
+  <main id="view" class="stack"></main>
+  <p class="small muted center" id="build">Build e023416b · works offline</p>
+  <dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+</div>
+<script>
+// Vintage Years: rules engine. Pure functions over plain objects, deterministic from a seed.
+const VY = (() => {
+  const REGIONS = ['H', 'R', 'M'];
+  const REGION_NAME = { H: 'Hillside', R: 'Riverside', M: 'Meadows' };
+  const RES = ['C', 'V', 'T'];
+  const RES_NAME = { C: 'Casks', V: 'Vines', T: 'Trellises' };
+  const COLORS = ['red', 'rose', 'white'];            // worker 0 makes red, 1 rosé, 2 white
+  const COLOR_NAME = { red: 'red', rose: 'rosé', white: 'white' };
+  const LAST_YEAR = 13, GRID = 16;                    // years '00 to '13, with room to run on to '15
+  const CASK_SLOTS = 12, VINE_SLOTS = 12, TRELLIS_ROW = 5;
+  const VERSION = 1;
+
+  // The map: 27 glasses, 9 per region (three each of 1-, 2- and 3-year wines), 8 paths inside each region, 3 bridges.
+  const NODES = [
+    // Hillside
+    { r: 'H', age: 1, x: 34, y: 44 }, { r: 'H', age: 2, x: 88, y: 30 }, { r: 'H', age: 3, x: 142, y: 50 },
+    { r: 'H', age: 2, x: 50, y: 100 }, { r: 'H', age: 3, x: 106, y: 94 }, { r: 'H', age: 2, x: 160, y: 108 },
+    { r: 'H', age: 1, x: 26, y: 154 }, { r: 'H', age: 3, x: 84, y: 150 }, { r: 'H', age: 1, x: 136, y: 160 },
+    // Riverside
+    { r: 'R', age: 2, x: 214, y: 34 }, { r: 'R', age: 3, x: 268, y: 42 }, { r: 'R', age: 1, x: 326, y: 34 },
+    { r: 'R', age: 3, x: 232, y: 96 }, { r: 'R', age: 2, x: 290, y: 98 }, { r: 'R', age: 1, x: 338, y: 128 },
+    { r: 'R', age: 1, x: 212, y: 156 }, { r: 'R', age: 3, x: 266, y: 154 }, { r: 'R', age: 2, x: 320, y: 176 },
+    // Meadows
+    { r: 'M', age: 1, x: 36, y: 216 }, { r: 'M', age: 3, x: 90, y: 212 }, { r: 'M', age: 2, x: 146, y: 226 },
+    { r: 'M', age: 3, x: 198, y: 214 }, { r: 'M', age: 2, x: 254, y: 222 }, { r: 'M', age: 1, x: 318, y: 232 },
+    { r: 'M', age: 2, x: 66, y: 268 }, { r: 'M', age: 3, x: 176, y: 272 }, { r: 'M', age: 1, x: 290, y: 276 },
+  ];
+  const EDGES = [
+    [0, 1], [1, 4], [2, 4], [2, 5], [4, 3], [3, 6], [4, 7], [7, 8],             // Hillside
+    [9, 10], [10, 11], [10, 13], [13, 14], [9, 12], [12, 16], [12, 15], [16, 17], // Riverside
+    [18, 19], [19, 20], [20, 21], [21, 22], [22, 23], [19, 24], [21, 25], [22, 26], // Meadows
+    [2, 9], [7, 19], [16, 22],                                                   // bridges
+  ];
+  const ADJ = NODES.map(() => []);
+  EDGES.forEach(([a, b], i) => { ADJ[a].push([b, i]); ADJ[b].push([a, i]); });
+  const INNER = REGIONS.map(R => EDGES.map((e, i) => i).filter(i => NODES[EDGES[i][0]].r === R && NODES[EDGES[i][1]].r === R));
+
+  /* ---------- randomness ---------- */
+  function mulberry32(a) {
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function hashSeed(...parts) { let h = 0x811c9dc5; for (const ch of parts.join('|')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+  function shuffle(a, rnd) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const pick = (a, rnd) => a[Math.floor(rnd() * a.length)];
+
+  /* ---------- map generation (one "page") ---------- */
+  function genMap(seed) {
+    const rnd = mulberry32(hashSeed('map', seed));
+    const color = Array(27), cask = Array(27).fill(0), edgeRes = Array(27).fill(null);
+    // In each region, the three glasses of each age are one red, one rosé, one white.
+    for (const R of REGIONS) for (const age of [1, 2, 3]) {
+      const ids = NODES.map((n, i) => i).filter(i => NODES[i].r === R && NODES[i].age === age);
+      shuffle(COLORS, rnd).forEach((c, k) => { color[ids[k]] = c; });
+    }
+    // Year '00: one region and one resource, then each cycles in a fixed order.
+    const regCycle = shuffle(REGIONS, rnd), resCycle = shuffle(RES, rnd);
+    const schedRegion = Array(14).fill(null), schedRes = Array(14).fill(null);
+    for (let y = 0; y <= 12; y++) {
+      if (y === 0) { schedRegion[0] = regCycle[0]; schedRes[0] = resCycle[0]; }
+      else if (y % 2) schedRegion[y] = regCycle[((y + 1) / 2) % 3];
+      else schedRes[y] = resCycle[(y / 2) % 3];
+    }
+    // Starting setup: the red worker passes, one worker makes a 3-year wine, the other gains 2 of the year's resource.
+    const wineWorker = rnd() < 0.5 ? 1 : 2, resWorker = 3 - wineWorker;
+    const startNode = NODES.findIndex((n, i) => n.r === schedRegion[0] && n.age === 3 && color[i] === COLORS[wineWorker]);
+    // Casks: in each region, one glass per age needs casks, needing 1, 1 and 2 (never the starting wine).
+    for (const R of REGIONS) {
+      const need = shuffle([1, 1, 2], rnd);
+      [1, 2, 3].forEach((age, k) => {
+        const ids = NODES.map((n, i) => i).filter(i => NODES[i].r === R && NODES[i].age === age && i !== startNode);
+        cask[pick(ids, rnd)] = need[k];
+      });
+    }
+    // Path resources: each region gets one resource type on 4 of its 8 inner paths.
+    const regRes = shuffle(RES, rnd);
+    REGIONS.forEach((R, k) => shuffle(INNER[k], rnd).slice(0, 4).forEach(i => { edgeRes[i] = regRes[k]; }));
+    // Vine bonuses: a 1-, 2- and 3-year wine in three different colors, then any wine at the last vine.
+    const ages = shuffle([1, 2, 3], rnd), cols = shuffle(COLORS, rnd);
+    const pos = [pick([3, 4], rnd), pick([6, 7], rnd), pick([9, 10], rnd)];
+    const vineRewards = pos.map((p, k) => ({ pos: p, age: ages[k], color: cols[k] })).concat([{ pos: 12, any: true }]);
+    // Trellis rows: a color, an age, and a region.
+    const trellis = [{ color: pick(COLORS, rnd) }, { age: pick([1, 2, 3], rnd) }, { region: pick(REGIONS, rnd) }];
+    const startTrellisRows = shuffle([0, 1, 2], rnd).slice(0, 2);
+    return { seed, color, cask, edgeRes, schedRegion, schedRes, start: { wineWorker, resWorker, node: startNode, region: schedRegion[0], res: schedRes[0], trellisRows: startTrellisRows }, vineRewards, trellis };
+  }
+
+  /* ---------- sheets ---------- */
+  function newSheet(map) {
+    const sh = { occ: [0, 1, 2].map(() => Array(GRID).fill('')), circled: Array(27).fill(false), filled: Array(27).fill(false),
+      caskT: 0, caskU: 0, vines: 0, trellis: [0, 0, 0], queue: [], turn: null, made: [] };
+    const s = map.start;
+    sh.occ[0][0] = '-';
+    for (let y = 0; y < 3; y++) sh.occ[s.wineWorker][y] = s.region;
+    for (let y = 0; y < 2; y++) sh.occ[s.resWorker][y] = s.res;
+    sh.circled[s.node] = true; sh.made.push(s.node);
+    if (s.res === 'C') sh.caskT = 2;
+    else if (s.res === 'V') sh.vines = 2;
+    else s.trellisRows.forEach(r => { sh.trellis[r] = 1; });
+    return sh;
+  }
+  const available = (sh, y) => [0, 1, 2].filter(w => sh.occ[w][y] === '');
+  const casksFree = sh => sh.caskT - sh.caskU;
+
+  // Which glasses could this worker make right now in this region?
+  function wineOptions(sh, map, region, w) {
+    return NODES.map((n, i) => i).filter(i => NODES[i].r === region && !sh.circled[i] && map.color[i] === COLORS[w] && map.cask[i] <= casksFree(sh));
+  }
+  function startTurn(sh, y, region, res) { sh.turn = { y, region, res, wine: null, gain: null }; }
+
+  function circle(sh, map, node) {
+    sh.circled[node] = true; sh.made.push(node); sh.caskU += map.cask[node];
+    for (const [other, e] of ADJ[node]) if (sh.circled[other] && !sh.filled[e]) {
+      sh.filled[e] = true;
+      if (map.edgeRes[e]) sh.queue.push({ t: 'gain', res: map.edgeRes[e], n: 1, from: 'path' });
+    }
+  }
+  function makeWine(sh, map, w, node) {
+    const t = sh.turn;
+    if (!t || t.wine !== null || sh.occ[w][t.y] !== '' || t.gain && t.gain.w === w) return false;
+    if (!wineOptions(sh, map, t.region, w).includes(node)) return false;
+    const age = NODES[node].age;
+    for (let k = 0; k < age; k++) sh.occ[w][t.y + k] = t.region;
+    t.wine = { w, node }; circle(sh, map, node); return true;
+  }
+  function gainRes(sh, w, n) {
+    const t = sh.turn;
+    if (!t || t.gain !== null || sh.occ[w][t.y] !== '' || n < 1 || n > 3) return false;
+    for (let k = 0; k < n; k++) sh.occ[w][t.y + k] = t.res;
+    t.gain = { w, n }; sh.queue.push({ t: 'gain', res: t.res, n, from: 'action' }); return true;
+  }
+
+  // Resolve queued effects until a choice is needed. Returns null when done, or the choice that's waiting.
+  function nextChoice(sh, map) {
+    while (sh.queue.length) {
+      const q = sh.queue[0];
+      if (q.t === 'gain') {
+        if (q.res === 'C') { sh.caskT = Math.min(CASK_SLOTS, sh.caskT + q.n); sh.queue.shift(); continue; }
+        if (q.res === 'V') {
+          sh.queue.shift();
+          const add = [];
+          for (let k = 0; k < q.n && sh.vines < VINE_SLOTS; k++) {
+            sh.vines++;
+            const rw = map.vineRewards.find(r => r.pos === sh.vines);
+            if (rw) add.push({ t: 'wine', reward: rw });
+          }
+          sh.queue.unshift(...add); continue;
+        }
+        // trellises: one at a time; ask which row unless only one row has room
+        const open = [0, 1, 2].filter(r => sh.trellis[r] < TRELLIS_ROW);
+        if (!open.length) { sh.queue.shift(); continue; }
+        if (open.length === 1) { placeTrellis(sh, open[0]); continue; }
+        return { t: 'trellis', rows: open, left: q.n };
+      }
+      if (q.t === 'wine') {
+        const opts = rewardOptions(sh, map, q.reward);
+        if (!opts.length) { sh.queue.shift(); continue; }
+        return { t: 'wine', reward: q.reward, options: opts };
+      }
+      sh.queue.shift();
+    }
+    return null;
+  }
+  function rewardOptions(sh, map, rw) {
+    return NODES.map((n, i) => i).filter(i => !sh.circled[i] && map.cask[i] <= casksFree(sh) && (rw.any || (map.color[i] === rw.color && NODES[i].age === rw.age)));
+  }
+  function placeTrellis(sh, row) {
+    const q = sh.queue[0];
+    if (!q || q.t !== 'gain' || q.res !== 'T' || sh.trellis[row] >= TRELLIS_ROW) return false;
+    sh.trellis[row]++; q.n--; if (q.n <= 0) sh.queue.shift(); return true;
+  }
+  function chooseRewardWine(sh, map, node) {
+    const q = sh.queue[0];
+    if (!q || q.t !== 'wine' || !rewardOptions(sh, map, q.reward).includes(node)) return false;
+    sh.queue.shift(); circle(sh, map, node); return true;
+  }
+  // Finish the year: any worker still free passes.
+  function endTurn(sh) {
+    const y = sh.turn.y;
+    for (const w of available(sh, y)) sh.occ[w][y] = '-';
+    sh.turn = null;
+  }
+
+  /* ---------- scoring ---------- */
+  function longestTour(sh) {
+    let best = 0; const used = Array(27).fill(false);
+    const dfs = (v, len) => { if (len > best) best = len; for (const [o, e] of ADJ[v]) if (sh.filled[e] && !used[e]) { used[e] = true; dfs(o, len + 1); used[e] = false; } };
+    for (let v = 0; v < 27; v++) dfs(v, 0);
+    return best;
+  }
+  function trellisPoints(sh, map) {
+    return map.trellis.map((rule, k) => {
+      if (sh.trellis[k] < TRELLIS_ROW) return 0;
+      return NODES.filter((n, i) => sh.circled[i] && (rule.color ? map.color[i] === rule.color : rule.age ? n.age === rule.age : n.r === rule.region)).length;
+    });
+  }
+  function sheetScore(sh, map) {
+    const paths = sh.filled.filter(Boolean).length, trel = trellisPoints(sh, map);
+    return { paths, longest: longestTour(sh), casks: sh.caskU, trellis: trel, base: paths + sh.caskU + trel.reduce((a, b) => a + b, 0) };
+  }
+  // Final scores with the comparison bonuses. stats: [{base, longest, casks, leaderYears}]
+  function finalScores(stats, solo) {
+    if (solo) return stats.map(s => ({ ...s, longestBonus: s.longest >= 7 ? 3 : 0, caskBonus: s.casks >= 7 ? 3 : 0, leaderBonus: 0, total: s.base + (s.longest >= 7 ? 3 : 0) + (s.casks >= 7 ? 3 : 0) }));
+    const maxL = Math.max(...stats.map(s => s.longest)), maxC = Math.max(...stats.map(s => s.casks)), maxY = Math.max(...stats.map(s => s.leaderYears));
+    return stats.map(s => {
+      const lb = s.longest === maxL && maxL > 0 ? 3 : 0, cb = s.casks === maxC && maxC > 0 ? 3 : 0, yb = s.leaderYears < maxY ? 1 : 0;
+      return { ...s, longestBonus: lb, caskBonus: cb, leaderBonus: yb, total: s.base + lb + cb + yb };
+    });
+  }
+  const SOLO_RANKS = [[35, 'Master Vintner'], [30, 'Winemaker'], [25, 'Artisan'], [20, 'Apprentice']];
+  const soloRank = total => (SOLO_RANKS.find(([p]) => total >= p) || [0, 'Cellar Hand'])[1];
+
+  /* ---------- the year schedule and leaders ---------- */
+  // Leaders for years '01-'12 in snake order. Solo games use the two-player pattern with the player going first.
+  function leaders(n, seed) {
+    if (n === 1) return [null, 0, -1, -1, 0, 0, -1, -1, 0, 0, -1, -1, 0];
+    const first = Math.floor(mulberry32(hashSeed('lead', seed))() * n);
+    const order = Array.from({ length: n }, (_, k) => (first + k) % n), seq = [];
+    for (let lap = 0; seq.length < 12; lap++) seq.push(...(lap % 2 ? order.slice().reverse() : order));
+    return [null, ...seq.slice(0, 12)];
+  }
+  // For year y, what does the leader choose? 'res' in odd years (region is printed), 'region' in even years.
+  const leaderPicks = y => (y % 2 ? 'res' : 'region');
+  function soloRoll(seed, y) { const r = mulberry32(hashSeed('solo', seed, y)); return { region: pick(REGIONS, r), res: pick(RES, r) }; }
+
+  return { REGIONS, REGION_NAME, RES, RES_NAME, COLORS, COLOR_NAME, NODES, EDGES, ADJ, LAST_YEAR, GRID, CASK_SLOTS, VINE_SLOTS, TRELLIS_ROW, VERSION,
+    mulberry32, hashSeed, shuffle, genMap, newSheet, available, casksFree, wineOptions, startTurn, makeWine, gainRes, nextChoice, rewardOptions,
+    placeTrellis, chooseRewardWine, endTurn, longestTour, trellisPoints, sheetScore, finalScores, soloRank, leaders, leaderPicks, soloRoll };
+})();
+if (typeof module !== 'undefined') module.exports = VY;
+
+// Vintage Years robots. Easy plays loosely, Medium plans one year ahead with a value estimate,
+// Hard tries its best few plans in quick simulated futures and keeps the one that scores best.
+const VYAI = (() => {
+  const V = (typeof VY !== 'undefined') ? VY : require('./engine.js');
+  const N = V.NODES;
+  const clone = sh => ({ occ: sh.occ.map(r => r.slice()), circled: sh.circled.slice(), filled: sh.filled.slice(), caskT: sh.caskT, caskU: sh.caskU,
+    vines: sh.vines, trellis: sh.trellis.slice(), queue: sh.queue.map(q => ({ ...q })), turn: sh.turn && { ...sh.turn }, made: sh.made.slice() });
+
+  // Rough worth of a sheet with `after` years still to play (after the current one).
+  function value(sh, map, after, W) {
+    W = W || DEFAULT_W;
+    const s = V.sheetScore(sh, map);
+    let v = s.base;
+    v += s.longest >= 7 ? 3 : s.longest * 0.3;
+    v += Math.min(sh.caskU, 8) * 0.15;
+    // unfinished trellis rows
+    map.trellis.forEach((rule, k) => {
+      const t = sh.trellis[k]; if (t >= V.TRELLIS_ROW) return;
+      const match = N.filter((n, i) => sh.circled[i] && (rule.color ? map.color[i] === rule.color : rule.age ? n.age === rule.age : n.r === rule.region)).length;
+      const reach = Math.max(0, 1 - (V.TRELLIS_ROW - t) / Math.max(1, after * 0.9));
+      v += (match + after * 0.35) * reach * W.trellis * (t / V.TRELLIS_ROW + 0.2);
+    });
+    // casks waiting to be used
+    v += Math.min(V.casksFree(sh), 4) * W.cask * (after > 0 ? 1 : 0.3);
+    // vines toward the next bonus wines
+    for (const rw of map.vineRewards) {
+      if (rw.pos <= sh.vines) continue;
+      const dist = rw.pos - sh.vines;
+      v += W.vine * Math.max(0, 1 - (dist - 1) / Math.max(2, after * 1.2));
+    }
+    // free worker-years ahead
+    let free = 0;
+    for (let y = 14 - after; y <= 13; y++) for (let w = 0; w < 3; w++) if (sh.occ[w][y] === '') free++;
+    v += free * W.workerYear;
+    // glasses next to our wines (future paths)
+    let near = 0;
+    for (let e = 0; e < 27; e++) {
+      if (sh.filled[e]) continue;
+      const [a, b] = V.EDGES[e];
+      if (sh.circled[a] !== sh.circled[b]) near += map.edgeRes[e] ? 1.4 : 1;
+    }
+    v += near * W.near * Math.min(1, after / 4);
+    return v;
+  }
+  const DEFAULT_W = { trellis: 0.55, cask: 0.55, vine: 2.2, workerYear: 0.55, near: 0.35 };
+
+  // Resolve any waiting choices greedily (trellis rows, bonus wines).
+  function settle(sh, map, after) {
+    let c, guard = 0;
+    while ((c = V.nextChoice(sh, map)) && guard++ < 60) {
+      if (c.t === 'trellis') {
+        let best = c.rows[0], bv = -1e9;
+        for (const r of c.rows) { const t = clone(sh); V.placeTrellis(t, r); const val = value(t, map, after); if (val > bv) { bv = val; best = r; } }
+        V.placeTrellis(sh, best);
+      } else {
+        let best = c.options[0], bv = -1e9;
+        for (const o of c.options) { const t = clone(sh); V.chooseRewardWine(t, map, o); settle(t, map, after); const val = value(t, map, after); if (val > bv) { bv = val; best = o; } }
+        V.chooseRewardWine(sh, map, best);
+      }
+    }
+  }
+
+  // Every legal way to spend this year: optional wine, optional gain, in either order.
+  function plans(sh, map, y, region, res) {
+    const out = [{ wine: null, gain: null }];
+    const av = V.available(sh, y);
+    const wines = [];
+    for (const w of av) for (const node of V.wineOptions(sh, map, region, w)) wines.push({ w, node });
+    for (const wi of wines) out.push({ wine: wi, gain: null });
+    for (const w of av) for (const n of [1, 2, 3]) {
+      out.push({ wine: null, gain: { w, n } });
+      for (const wi of wines) if (wi.w !== w) out.push({ wine: wi, gain: { w, n } });
+    }
+    // gaining casks first can unlock a cask wine this same year
+    if (res === 'C') {
+      for (const w of av) for (const n of [1, 2, 3]) {
+        const t = clone(sh); V.startTurn(t, y, region, res); V.gainRes(t, w, n); V.nextChoice(t, map);
+        for (const w2 of av) if (w2 !== w) for (const node of V.wineOptions(t, map, region, w2))
+          if (!wines.some(x => x.w === w2 && x.node === node)) out.push({ wine: { w: w2, node }, gain: { w, n }, gainFirst: true });
+      }
+    }
+    return out;
+  }
+  function apply(sh, map, y, region, res, p) {
+    V.startTurn(sh, y, region, res);
+    const after = 13 - y;
+    if (p.gainFirst) { V.gainRes(sh, p.gain.w, p.gain.n); settle(sh, map, after); V.makeWine(sh, map, p.wine.w, p.wine.node); settle(sh, map, after); }
+    else {
+      if (p.wine) { V.makeWine(sh, map, p.wine.w, p.wine.node); settle(sh, map, after); }
+      if (p.gain) { V.gainRes(sh, p.gain.w, p.gain.n); settle(sh, map, after); }
+    }
+    V.endTurn(sh);
+  }
+  function scored(sh, map, y, region, res, W) {
+    return plans(sh, map, y, region, res).map(p => { const t = clone(sh); apply(t, map, y, region, res, p); return { p, v: value(t, map, 13 - y, W) }; }).sort((a, b) => b.v - a.v);
+  }
+
+  // Pick a plan. rnd is a seeded random function so every linked phone gets the same robot moves.
+  function choose(level, sh, map, y, region, res, rnd, ctx) {
+    const list = scored(sh, map, y, region, res);
+    if (level === 'easy') {
+      if (rnd() < 0.6) return list[Math.floor(rnd() * Math.min(list.length, 14))].p;
+      return list[0].p;
+    }
+    if (level === 'medium' || list.length === 1) return list[0].p;
+    // hard: test the top plans in a few simulated futures
+    const top = list.slice(0, 6), R = (ctx && ctx.rollouts) || 6;
+    let best = top[0].p, bestV = -1e9;
+    for (const { p } of top) {
+      let tot = 0;
+      for (let k = 0; k < R; k++) {
+        const t = clone(sh); apply(t, map, y, region, res, p);
+        tot += rollout(t, map, y + 1, rnd);
+      }
+      if (tot / R > bestV) { bestV = tot / R; best = p; }
+    }
+    return best;
+  }
+  // Play the rest of the game with the medium robot and unknown leader picks; return the final score.
+  function rollout(sh, map, fromY, rnd) {
+    for (let y = fromY; y <= 13; y++) {
+      const region = map.schedRegion[y] || V.REGIONS[Math.floor(rnd() * 3)], res = map.schedRes[y] || V.RES[Math.floor(rnd() * 3)];
+      const p = scored(sh, map, y, region, res)[0].p;
+      apply(sh, map, y, region, res, p);
+    }
+    const s = V.sheetScore(sh, map);
+    return s.base + (s.longest >= 7 ? 3 : 0) + (s.casks >= 7 ? 1.5 : 0);
+  }
+
+  // What should a robot leader pick (or a robot choose for itself in '13)?
+  function pickYear(level, sh, map, y, need, rnd) {
+    const regions = need.region ? V.REGIONS : [map.schedRegion[y]];
+    const ress = need.res ? V.RES : [map.schedRes[y]];
+    let best = null, bv = -1e9;
+    for (const region of regions) for (const res of ress) {
+      const v = scored(sh, map, y, region, res)[0].v + (level === 'easy' ? rnd() * 3 : 0);
+      if (v > bv) { bv = v; best = { region, res }; }
+    }
+    return best;
+  }
+
+  // Run a robot's whole year on its sheet.
+  function playYear(level, sh, map, y, region, res, rnd, ctx) { apply(sh, map, y, region, res, choose(level, sh, map, y, region, res, rnd, ctx)); }
+
+  return { value, plans, apply, choose, pickYear, playYear, clone, settle, scored, DEFAULT_W };
+})();
+if (typeof module !== 'undefined') module.exports = VYAI;
+
+// Vintage Years: runs a whole game (years, leaders, robots, one-phone or linked play). No screen code here.
+const VG = (() => {
+  const V = (typeof VY !== 'undefined') ? VY : require('./engine.js');
+  const A = (typeof VYAI !== 'undefined') ? VYAI : require('./ai.js');
+  const ROBOT_NAMES = ['Barrel Bot', 'Corky', 'Robo Rosé', 'Sir Sips', 'Vinnie', 'Grapebot'];
+  const LEVELS = ['easy', 'medium', 'hard'];
+  const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const mapCache = {};
+
+  // cfg: { seats: [{ name, kind: 'human'|'robot', level }], sameMap, mode: 'pass'|'linked', me }
+  function newGame(cfg, seed) {
+    const n = cfg.seats.length;
+    const G = { v: 1, seed, cfg, year: 1, stage: 'pick', picks: {}, own13: {}, done: Array(n).fill(false), log: [], leaders: V.leaders(n, seed), sheets: [], snap: null, others: {} };
+    G.solo = n === 1;
+    for (let s = 0; s < n; s++) G.sheets.push(hasSheet(G, s) ? V.newSheet(mapFor(G, s)) : null);
+    return G;
+  }
+  const hasSheet = (G, s) => G.cfg.mode !== 'linked' || G.cfg.seats[s].kind === 'robot' || s === G.cfg.me;
+  function mapSeed(G, s) { return G.cfg.sameMap ? G.seed : V.hashSeed('seat', G.seed, s); }
+  function mapFor(G, s) { const k = mapSeed(G, s); return mapCache[k] || (mapCache[k] = V.genMap(k)); }
+  const isRobot = (G, s) => G.cfg.seats[s].kind === 'robot';
+  const name = (G, s) => G.cfg.seats[s].name;
+  const botRnd = (G, s, y, tag) => V.mulberry32(V.hashSeed('bot', tag || '', G.seed, s, y));
+
+  // Region and resource for seat s this year.
+  function yearFor(G, s, y) {
+    y = y || G.year; const m = mapFor(G, s);
+    if (y === 13) return { region: G.own13[s] && G.own13[s].region, res: G.own13[s] && G.own13[s].res };
+    if (G.solo && G.leaders[y] !== 0) { const r = V.soloRoll(G.seed, y); return { region: m.schedRegion[y] || r.region, res: m.schedRes[y] || r.res }; }
+    const p = G.picks[y] || {};
+    return { region: m.schedRegion[y] || p.region, res: m.schedRes[y] || p.res };
+  }
+  const leaderOf = (G, y) => G.leaders[y || G.year];
+  const pickKind = y => V.leaderPicks(y);
+
+  // Advance anything automatic. Returns what the game needs next from a person.
+  function step(G) {
+    for (let guard = 0; guard < 200; guard++) {
+      if (G.stage === 'end') return { t: 'end' };
+      const y = G.year;
+      if (G.stage === 'pick') {
+        if (y === 13 || (G.solo && leaderOf(G, y) !== 0)) { G.stage = 'play'; continue; }
+        if (G.picks[y]) { G.stage = 'play'; continue; }
+        const L = leaderOf(G, y), kind = pickKind(y);
+        if (isRobot(G, L)) {
+          const p = A.pickYear(G.cfg.seats[L].level, G.sheets[L], mapFor(G, L), y, { region: kind === 'region', res: kind === 'res' }, botRnd(G, L, y, 'lead'));
+          G.picks[y] = { [kind]: p[kind] }; G.log.push({ y, t: 'pick', s: L, kind, val: p[kind] }); G.stage = 'play'; continue;
+        }
+        if (G.cfg.mode === 'linked' && L !== G.cfg.me) return { t: 'relay', seat: L, kind };
+        return { t: 'leader', seat: L, kind };
+      }
+      // play: robots first, then people in seat order
+      for (let s = 0; s < G.cfg.seats.length; s++) {
+        if (G.done[s] || !isRobot(G, s)) continue;
+        robotYear(G, s); G.done[s] = true;
+      }
+      const next = G.cfg.seats.findIndex((x, s) => !G.done[s] && hasSheet(G, s));
+      if (next >= 0) {
+        if (y === 13 && !(G.own13[next] && G.own13[next].region && G.own13[next].res)) return { t: 'pick13', seat: next };
+        if (!G.sheets[next].turn) beginTurn(G, next);
+        return { t: 'turn', seat: next };
+      }
+      // everyone who plays on this phone is done
+      G.year++; G.done = G.done.map(() => false); G.snap = null;
+      G.stage = G.year > V.LAST_YEAR ? 'end' : 'pick';
+    }
+    throw new Error('step loop');
+  }
+  function robotYear(G, s) {
+    const sh = G.sheets[s], m = mapFor(G, s), lvl = G.cfg.seats[s].level, y = G.year;
+    if (y === 13) G.own13[s] = A.pickYear(lvl, sh, m, 13, { region: true, res: true }, botRnd(G, s, 13, 'own'));
+    const { region, res } = yearFor(G, s, y);
+    const madeBefore = sh.made.length, free = V.available(sh, y);
+    A.playYear(lvl, sh, m, y, region, res, botRnd(G, s, y));
+    let gain = null;
+    for (const w of free) if (sh.occ[w][y] === res && !V.REGIONS.includes(res)) { let n = 0; while (y + n < V.GRID && sh.occ[w][y + n] === res) n++; gain = { res, n }; }
+    G.log.push({ y, t: 'robot', s, wines: sh.made.slice(madeBefore), gain, region, res });
+  }
+  function setLeaderPick(G, val) {
+    const y = G.year, kind = pickKind(y);
+    if (G.stage !== 'pick' || G.picks[y]) return false;
+    const ok = kind === 'region' ? V.REGIONS.includes(val) : V.RES.includes(val);
+    if (!ok) return false;
+    G.picks[y] = { [kind]: val }; G.log.push({ y, t: 'pick', s: leaderOf(G, y), kind, val }); G.stage = 'play'; return true;
+  }
+  function setOwn13(G, s, region, res) { if (G.year !== 13) return false; G.own13[s] = { region, res }; return true; }
+  function beginTurn(G, s) {
+    const { region, res } = yearFor(G, s);
+    V.startTurn(G.sheets[s], G.year, region, res);
+    G.snap = { s, sheet: JSON.stringify(G.sheets[s]) };
+  }
+  function restartTurn(G, s) { if (!G.snap || G.snap.s !== s) return false; G.sheets[s] = JSON.parse(G.snap.sheet); return true; }
+  function finishTurn(G, s) {
+    const sh = G.sheets[s];
+    if (V.nextChoice(sh, mapFor(G, s))) return false; // a bonus choice is still waiting
+    V.endTurn(sh); G.done[s] = true; G.snap = null; return true;
+  }
+
+  // Scores. In linked games, other people's numbers come from what they read out (G.others[s]).
+  function leaderYears(G) { const c = G.cfg.seats.map(() => 0); G.leaders.slice(1).forEach(p => { if (p >= 0) c[p]++; }); return c; }
+  function results(G) {
+    const ly = leaderYears(G);
+    const stats = G.cfg.seats.map((x, s) => {
+      if (G.sheets[s]) { const sc = V.sheetScore(G.sheets[s], mapFor(G, s)); return { seat: s, base: sc.base, paths: sc.paths, longest: sc.longest, casks: sc.casks, trellis: sc.trellis, leaderYears: ly[s], known: true }; }
+      const o = G.others[s] || {}; return { seat: s, base: o.base || 0, longest: o.longest || 0, casks: o.casks || 0, leaderYears: ly[s], known: !!G.others[s] };
+    });
+    const fin = V.finalScores(stats, G.solo);
+    const top = Math.max(...fin.map(f => f.total));
+    return fin.map(f => ({ ...f, name: name(G, f.seat), winner: f.total === top, rank: G.solo ? V.soloRank(f.total) : null }));
+  }
+
+  /* ---------- linked game codes ---------- */
+  function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+  // seed (27 bits), seats-1 (3), each seat 0 person / 1-3 robot level (2 x 6), same map (1), version (3), check (5) = 51 bits
+  function encode(seed, kinds, sameMap) {
+    const parts = [seed, kinds.length - 1, ...Array.from({ length: 6 }, (_, i) => kinds[i] || 0), sameMap ? 1 : 0, V.VERSION & 7];
+    let n = seed;
+    n = n * 8 + (kinds.length - 1);
+    for (let i = 0; i < 6; i++) n = n * 4 + (kinds[i] || 0);
+    n = n * 2 + (sameMap ? 1 : 0); n = n * 8 + (V.VERSION & 7);
+    n = n * 32 + (fnv('vintage.' + parts.join('.')) & 31);
+    let s = ''; for (let i = 0; i < 11; i++) { s = B32[n % 32] + s; n = Math.floor(n / 32); }
+    return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8);
+  }
+  function decode(raw) {
+    const s = String(raw || '').toUpperCase().replace(/[\s-]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
+    if (s.length !== 11) return { err: 'A game code has 11 letters and numbers, like K7QM-2XRD-9FA.' };
+    let n = 0; for (const ch of s) { const v = B32.indexOf(ch); if (v < 0) return { err: `The code doesn't use the character ${ch}. Check it and try again.` }; n = n * 32 + v; }
+    const chk = n % 32; n = Math.floor(n / 32);
+    const ver = n % 8; n = Math.floor(n / 8);
+    const same = n % 2; n = Math.floor(n / 2);
+    const kinds = []; for (let i = 5; i >= 0; i--) { kinds[i] = n % 4; n = Math.floor(n / 4); }
+    const cnt = n % 8 + 1; n = Math.floor(n / 8); const seed = n;
+    const parts = [seed, cnt - 1, ...kinds, same, ver];
+    if (cnt > 6 || (fnv('vintage.' + parts.join('.')) & 31) !== chk) return { err: "That code doesn't check out. Ask the host to read it again, slowly." };
+    if (ver !== (V.VERSION & 7)) return { err: 'This code comes from a different version of Vintage Years. Open the game while online on both phones to update, then try again.' };
+    return { seed, kinds: kinds.slice(0, cnt), sameMap: !!same };
+  }
+  const kindsOf = seats => seats.map(x => x.kind === 'robot' ? 1 + LEVELS.indexOf(x.level) : 0);
+  const seatsFromKinds = (kinds, names) => kinds.map((k, i) => k ? { name: ROBOT_NAMES[i], kind: 'robot', level: LEVELS[k - 1] } : { name: (names && names[i]) || `Player ${i + 1}`, kind: 'human' });
+
+  return { newGame, mapFor, hasSheet, isRobot, yearFor, leaderOf, pickKind, step, setLeaderPick, setOwn13, beginTurn, restartTurn, finishTurn, results, leaderYears,
+    encode, decode, kindsOf, seatsFromKinds, ROBOT_NAMES, LEVELS };
+})();
+if (typeof module !== 'undefined') module.exports = VG;
+
+// Vintage Years: screens.
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = 'vintage:v1', SKEY = 'vintage:setup';
+  const load = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const drop = k => { try { localStorage.removeItem(k); } catch (e) {} };
+  const yr = y => '’' + String(y).padStart(2, '0');
+  const plural = (n, w, ws) => `${n} ${n === 1 ? w : (ws || w + 's')}`;
+  const WORKER = ['Red', 'Rosé', 'White'];
+  const announce = t => { const l = $('live'); l.textContent = ''; setTimeout(() => { l.textContent = t; }, 30); };
+
+  function el(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (k === 'text') e.textContent = v; else e.setAttribute(k, v === true ? '' : v);
+    }
+    for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+    return e;
+  }
+  const btn = (text, cls, fn, extra) => el('button', Object.assign({ type: 'button', class: 'btn ' + (cls || ''), onclick: fn }, extra || {}), text);
+  const seg = (label, opts, value, fn) => {
+    const id = 'seg' + Math.random().toString(36).slice(2, 7);
+    return el('div', { class: 'stack', style: 'gap:6px' }, el('label', { id }, label),
+      el('div', { class: 'seg', role: 'group', 'aria-labelledby': id }, opts.map(([v, t]) => el('button', { type: 'button', 'aria-pressed': String(v === value), onclick: () => fn(v) }, t))));
+  };
+  const tagRegion = r => el('span', { class: 'tag ' + r }, VY.REGION_NAME[r]);
+  const tagRes = r => el('span', { class: 'tag ' + r }, VY.RES_NAME[r]);
+  const wineName = (map, i) => `${VY.NODES[i].age}-year ${VY.COLOR_NAME[map.color[i]]}`;
+
+  /* ---------- state ---------- */
+  let G = load(KEY);
+  let setup = load(SKEY) || { seats: [{ name: '', kind: 'human' }, { name: '', kind: 'robot', level: 'medium' }], sameMap: true, mode: 'pass' };
+  let screen = null;      // 'host' | 'join' while setting up a linked game
+  let joinState = null, hostSeed = null;
+  let handedTo = null;    // pass mode: which person has the phone
+  let gainW = null;
+  const save = () => { if (G) store(KEY, G); store(SKEY, setup); };
+
+  /* ---------- the map ---------- */
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function s(tag, attrs, ...kids) { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs || {})) if (v !== null && v !== undefined) e.setAttribute(k, v); kids.flat().forEach(k => k && e.append(k.nodeType ? k : document.createTextNode(String(k)))); return e; }
+  function drawMap(map, sh, opts) {
+    opts = opts || {};
+    const css = getComputedStyle(document.documentElement), c = n => css.getPropertyValue(n).trim();
+    const svg = s('svg', { viewBox: '0 0 360 300', class: 'map', role: 'group', 'aria-label': 'Vineyard map' });
+    // land and river
+    svg.append(s('rect', { x: 0, y: 0, width: 360, height: 300, fill: c('--meadow') }),
+      s('path', { d: 'M0 0H186C182 60 190 120 196 176C130 186 60 176 0 184Z', fill: c('--hill') }),
+      s('path', { d: 'M186 0H360V200C300 196 250 196 196 190C192 120 186 60 186 0Z', fill: c('--river-land') }),
+      s('path', { d: 'M186 -2C182 60 190 120 194 182C130 194 60 186 -2 194', fill: 'none', stroke: c('--water'), 'stroke-width': 12, 'stroke-linecap': 'round' }),
+      s('path', { d: 'M194 182C250 198 300 200 362 206', fill: 'none', stroke: c('--water'), 'stroke-width': 12, 'stroke-linecap': 'round' }));
+    const label = (x, y, t, col, anchor) => s('text', { x, y, 'text-anchor': anchor || 'start', 'font-family': 'Georgia, serif', 'font-weight': 700, 'font-size': 11, 'letter-spacing': 1.5, fill: col }, t);
+    svg.append(label(6, 12, 'HILLSIDE', c('--rH')), label(354, 12, 'RIVERSIDE', c('--rR'), 'end'), label(6, 296, 'MEADOWS', c('--rM')));
+    // paths
+    VY.EDGES.forEach(([a, b], e) => {
+      const A = VY.NODES[a], B = VY.NODES[b], f = sh && sh.filled[e];
+      svg.append(s('line', { x1: A.x, y1: A.y + 3, x2: B.x, y2: B.y + 3, stroke: f ? c('--accent') : c('--muted'), 'stroke-width': f ? 4 : 1.8, 'stroke-dasharray': f ? null : '0.5 4.5', 'stroke-linecap': 'round', opacity: f ? 0.9 : 0.75 }));
+      const r = map.edgeRes[e];
+      if (r) {
+        const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2 + 3, col = c(r === 'C' ? '--cask' : r === 'V' ? '--vine' : '--trellis');
+        svg.append(s('circle', { cx: mx, cy: my, r: 7.5, fill: c('--surface'), stroke: col, 'stroke-width': 1.5, opacity: f ? 0.55 : 1 }),
+          s('text', { x: mx, y: my + 3.6, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: col, opacity: f ? 0.55 : 1 }, r));
+      }
+    });
+    // glasses
+    VY.NODES.forEach((n, i) => {
+      const g = s('g', {}), col = map.color[i], fill = c('--' + col), made = sh && sh.circled[i];
+      const x = n.x, y = n.y;
+      g.append(s('path', { d: `M${x - 8} ${y - 10}H${x + 8}C${x + 9} ${y + 2} ${x + 5} ${y + 8} ${x} ${y + 8}C${x - 5} ${y + 8} ${x - 9} ${y + 2} ${x - 8} ${y - 10}Z`, fill, stroke: c('--ink'), 'stroke-width': 1.2 }),
+        s('path', { d: `M${x} ${y + 8}V${y + 15}M${x - 5} ${y + 16}H${x + 5}`, stroke: c('--ink'), 'stroke-width': 1.4, 'stroke-linecap': 'round' }),
+        s('text', { x, y: y + 3, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 800, fill: col === 'red' ? '#fff' : '#2B1D22' }, n.age));
+      for (let k = 0; k < map.cask[i]; k++) {
+        const bx = x + 8 + k * 7, by = y + 9;
+        g.append(s('rect', { x: bx, y: by, width: 7, height: 7, rx: 2, fill: c('--cask'), stroke: c('--ink'), 'stroke-width': 0.6 }), s('line', { x1: bx, y1: by + 3.5, x2: bx + 7, y2: by + 3.5, stroke: '#3a2412', 'stroke-width': 0.6 }));
+      }
+      if (made) g.append(s('ellipse', { cx: x, cy: y + 3, rx: 13, ry: 17, fill: 'none', stroke: c('--ink'), 'stroke-width': 2.2 }));
+      const live = opts.glow && opts.glow.has(i);
+      if (live) g.append(s('ellipse', { class: 'glow', cx: x, cy: y + 3, rx: 15, ry: 19 }));
+      const t = s('circle', { class: 'tap', cx: x, cy: y + 3, r: 18 });
+      const desc = `${wineName(map, i)}, ${VY.REGION_NAME[n.r]}${map.cask[i] ? `, needs ${plural(map.cask[i], 'cask')}` : ''}${made ? ', made' : ''}`;
+      if (live && opts.onTap) {
+        g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', desc + '. Tap to choose.');
+        g.addEventListener('click', () => opts.onTap(i)); g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); opts.onTap(i); } });
+      } else { g.setAttribute('role', 'img'); g.setAttribute('aria-label', desc); }
+      g.append(t); svg.append(g);
+    });
+    return el('div', { class: 'mapwrap' }, svg);
+  }
+  const legend = () => el('div', { class: 'legend' },
+    el('span', {}, el('span', { class: 'wdot red' }), 'Red (dark)'), el('span', {}, el('span', { class: 'wdot rose' }), 'Rosé (pink)'), el('span', {}, el('span', { class: 'wdot white' }), 'White (gold)'),
+    el('span', {}, 'Number = years to age'), el('span', {}, 'Barrels = casks needed'));
+
+  /* ---------- sheet panels ---------- */
+  function workersGrid(sh, y) {
+    const head = el('tr', {}, el('th', { class: 'wk' }, el('span', { class: 'sr' }, 'Worker')));
+    for (let k = 0; k < VY.GRID; k++) head.append(el('th', { class: k > 13 ? 'extra' : null }, String(k).padStart(2, '0')));
+    const rows = [0, 1, 2].map(w => el('tr', {}, el('th', { class: 'wk' }, el('span', { class: 'wdot ' + VY.COLORS[w], title: WORKER[w] + ' worker' }), el('span', { class: 'sr' }, WORKER[w] + ' worker')),
+      sh.occ[w].map((v, k) => el('td', { class: (k === y ? 'now' : '') + (k > 13 ? ' extra' : '') }, v))));
+    return el('div', { class: 'panel stack' }, el('h3', {}, 'Workers'),
+      el('div', { class: 'workers' }, el('table', { class: 'grid' }, el('thead', {}, head), el('tbody', {}, rows))),
+      el('p', { class: 'small muted' }, 'Each row is one worker. A letter means busy that year (H, R, M for wine; C, V, T for resources; a dash for passing). An empty box means free.'));
+  }
+  function resources(sh, map) {
+    const casks = el('div', { class: 'track', role: 'img', 'aria-label': `Casks: ${VY.casksFree(sh)} ready, ${sh.caskU} used, ${12 - sh.caskT} spaces left` });
+    for (let k = 0; k < 12; k++) casks.append(el('div', { class: 'cask ' + (k < sh.caskU ? 'used' : k < sh.caskT ? 'have' : '') }, k < sh.caskT ? 'C' : ''));
+    const vines = el('div', { class: 'track', role: 'img', 'aria-label': `Vines: ${sh.vines} of 12` });
+    for (let k = 1; k <= 12; k++) {
+      const rw = map.vineRewards.find(r => r.pos === k);
+      vines.append(el('div', { class: 'vine' + (k <= sh.vines ? ' have' : '') + (rw ? ' bonus' : ''), title: rw ? (rw.any ? 'Bonus: any wine' : `Bonus: ${rw.age}-year ${VY.COLOR_NAME[rw.color]}`) : '' }, rw ? (rw.any ? '★' : rw.age + rw.color[0].toUpperCase()) : ''));
+    }
+    const bonusList = map.vineRewards.map(r => `vine ${r.pos}: ${r.any ? 'any wine' : `${r.age}-year ${VY.COLOR_NAME[r.color]}`}`).join(' · ');
+    const trows = map.trellis.map((rule, k) => {
+      const row = el('div', { class: 'trow' + (sh.trellis[k] >= 5 ? ' done' : '') });
+      for (let j = 0; j < 5; j++) row.append(el('div', { class: 'tbox' + (j < sh.trellis[k] ? ' have' : '') }, j < sh.trellis[k] ? 'T' : ''));
+      row.append(el('div', { class: 'rule' }, trellisRule(rule)));
+      return row;
+    });
+    return el('div', { class: 'panel res' },
+      el('h3', {}, 'Casks'), casks, el('p', { class: 'small muted' }, `${VY.casksFree(sh)} ready to use, ${sh.caskU} used (1 point each).`),
+      el('h3', {}, 'Vines'), vines, el('p', { class: 'small muted' }, 'Filling a marked vine gives a free wine anywhere on the map. ' + bonusList + '.'),
+      el('h3', {}, 'Trellises'), ...trows, el('p', { class: 'small muted' }, 'A full row of 5 scores its bonus at the end.'));
+  }
+  const trellisRule = r => r.color ? `1 point per ${VY.COLOR_NAME[r.color]} wine` : r.age ? `1 point per ${r.age}-year wine` : `1 point per wine in ${VY.REGION_NAME[r.region]}`;
+  function scoreLine(sh, map) {
+    const sc = VY.sheetScore(sh, map);
+    return el('p', { class: 'score-line' }, el('b', {}, `${sc.base} points so far`), el('span', { class: 'muted' }, ` · paths ${sc.paths} · casks used ${sc.casks} · trellis ${sc.trellis.reduce((a, b) => a + b, 0)} · longest tour ${sc.longest}`));
+  }
+
+  /* ---------- top-level render ---------- */
+  function render() {
+    const view = $('view'); view.innerHTML = '';
+    if (!G) { $('meta').textContent = ''; if (screen === 'host') return hostScreen(view); if (screen === 'join') return joinScreen(view); return setupScreen(view); }
+    $('meta').textContent = G.stage === 'end' ? 'Game over' : `Year ${yr(G.year)}`;
+    view.append(el('p', { class: 'thinking center' }, 'The robots are thinking…'));
+    setTimeout(() => {
+      let need; try { need = VG.step(G); } catch (e) { view.innerHTML = ''; view.append(el('p', {}, 'Something went wrong: ' + e.message)); return; }
+      save(); view.innerHTML = '';
+      $('meta').textContent = need.t === 'end' ? 'Game over' : `Year ${yr(G.year)} of ${yr(13)}`;
+      if (need.t === 'leader' || need.t === 'relay') return leaderScreen(view, need);
+      if (need.t === 'pick13') return pick13Screen(view, need.seat);
+      if (need.t === 'turn') {
+        const people = G.cfg.seats.filter(x => x.kind === 'human').length;
+        if (G.cfg.mode === 'pass' && people > 1 && handedTo !== need.seat) return handoffScreen(view, need.seat);
+        return turnScreen(view, need.seat);
+      }
+      return endScreen(view);
+    }, 20);
+  }
+  const focusTop = () => { const h = $('view').querySelector('h1,h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } window.scrollTo(0, 0); };
+
+  /* ---------- setup ---------- */
+  function setupScreen(view) {
+    const saved = load(KEY);
+    view.append(el('div', { class: 'hero' }, el('p', { class: 'tagline' }, 'A winemaking game of timing'), el('h1', {}, 'Vintage Years'),
+      el('p', { class: 'muted' }, 'Thirteen years to build a vineyard tour. Send your three workers to make wine or gather casks, vines, and trellises. Longer jobs pay off more, but tie your workers up longer.')));
+    if (saved && saved.stage !== 'end') view.append(el('div', { class: 'panel stack' }, el('h3', {}, 'A game is in progress'),
+      el('p', { class: 'small muted' }, `${saved.cfg.seats.map(x => x.name).join(', ')} · Year ${yr(saved.year)}`),
+      el('div', { class: 'row' }, btn('Resume game', 'btn-primary', () => { G = saved; handedTo = null; render(); }), btn('Start over', '', () => { drop(KEY); render(); }))));
+    const p = el('div', { class: 'panel stack' }, el('h3', {}, 'Players, in turn order'));
+    setup.seats.forEach((st, i) => {
+      const nameIn = el('input', { type: 'text', maxlength: 14, autocomplete: 'off', 'aria-label': `Player ${i + 1} name`, placeholder: st.kind === 'robot' ? VG.ROBOT_NAMES[i] : `Player ${i + 1}`, value: st.name || '' });
+      nameIn.addEventListener('input', () => { st.name = nameIn.value; store(SKEY, setup); });
+      const kind = el('select', { 'aria-label': `Player ${i + 1} type` }, ['human', 'easy', 'medium', 'hard'].map(v => el('option', { value: v, selected: (st.kind === 'human' ? 'human' : st.level) === v }, v === 'human' ? 'Person' : `Robot (${v})`)));
+      kind.addEventListener('change', () => { if (kind.value === 'human') { st.kind = 'human'; delete st.level; } else { st.kind = 'robot'; st.level = kind.value; } store(SKEY, setup); render(); });
+      p.append(el('div', { class: 'seat' }, nameIn, kind, el('button', { type: 'button', class: 'xbtn', 'aria-label': `Remove player ${i + 1}`, disabled: setup.seats.length <= 1, onclick: () => { setup.seats.splice(i, 1); render(); } }, '×')));
+    });
+    if (setup.seats.length < 6) p.append(el('div', { class: 'row' }, btn('Add a person', '', () => { setup.seats.push({ name: '', kind: 'human' }); render(); }), btn('Add a robot', '', () => { setup.seats.push({ name: '', kind: 'robot', level: 'medium' }); render(); })));
+    view.append(p);
+    const o = el('div', { class: 'panel stack' });
+    if (setup.seats.length > 1) o.append(seg('Maps', [[true, 'Same map for all'], [false, 'Each gets their own']], setup.sameMap, v => { setup.sameMap = v; render(); }));
+    const people = setup.seats.filter(x => x.kind === 'human').length;
+    if (people > 1) o.append(seg('Play on', [['pass', 'One phone'], ['linked', 'Linked phones']], setup.mode, v => { setup.mode = v; render(); }),
+      el('p', { class: 'small muted' }, setup.mode === 'pass' ? 'Pass the phone around. Each person takes their year in turn.' : 'Everyone plays on their own phone at the same time. You will get a code for the others to join with. You are Player 1.'));
+    else if (setup.seats.length === 1) o.append(el('p', { class: 'small muted' }, 'Solo game. You lead in years ’01, ’04, ’05, ’08, ’09, and ’12. The other years are rolled at random. Aim for 20 points or more.'));
+    o.append(btn(people > 1 && setup.mode === 'linked' ? 'Get a game code' : 'Start the game', 'btn-primary', startFromSetup, { disabled: people < 1 ? true : null }));
+    if (people < 1) o.append(el('p', { class: 'small msg bad' }, 'Add at least one person.'));
+    view.append(o, el('div', { class: 'row' }, btn('Join a linked game', '', () => { screen = 'join'; joinState = { code: '', names: [], me: null, ok: null }; render(); }), btn('How to play', '', rules)));
+    store(SKEY, setup);
+  }
+  function seatsFromSetup() { return setup.seats.map((st, i) => st.kind === 'robot' ? { name: (st.name || '').trim() || VG.ROBOT_NAMES[i], kind: 'robot', level: st.level } : { name: (st.name || '').trim() || `Player ${i + 1}`, kind: 'human' }); }
+  const newSeed = () => { try { return crypto.getRandomValues(new Uint32Array(1))[0] >>> 5; } catch (e) { return Math.floor(Math.random() * 134217728); } };
+  function startFromSetup() {
+    const people = setup.seats.filter(x => x.kind === 'human').length;
+    if (people > 1 && setup.mode === 'linked') {
+      if (setup.seats[0].kind !== 'human') { alertBox('Player 1 has to be a person, because Player 1 is the phone that starts the linked game.'); return; }
+      hostSeed = newSeed(); screen = 'host'; render(); return;
+    }
+    G = VG.newGame({ seats: seatsFromSetup(), sameMap: setup.sameMap, mode: 'pass' }, newSeed()); handedTo = null; save(); render();
+  }
+  function hostScreen(view) {
+    // robots keep their standard names in linked games, so every phone shows the same names
+    const seats = seatsFromSetup().map((x, i) => x.kind === 'robot' ? { ...x, name: VG.ROBOT_NAMES[i] } : x), code = VG.encode(hostSeed, VG.kindsOf(seats), setup.sameMap);
+    const msg = el('p', { class: 'msg good', role: 'status' });
+    const text = `Let's play Vintage Years! Open dnadorff.github.io/vintage-years, tap Join a linked game, and enter ${code}. Players in order: ${seats.map(x => x.name).join(', ')}.`;
+    view.append(el('h2', {}, 'Your linked game'), el('p', {}, 'Read this code to the others. On their phones they tap Join a linked game.'),
+      el('div', { class: 'codebig', 'aria-label': 'Game code ' + code.split('').join(' ') }, code),
+      el('p', {}, 'Players, in turn order:'), el('ol', {}, seats.map((x, i) => el('li', {}, x.name + (x.kind === 'robot' ? ` (robot, ${x.level})` : i === 0 ? ' (you)' : '')))),
+      el('p', { class: 'small muted' }, 'Everyone types the names in this same order. Robots play on every phone and make the same moves everywhere.'),
+      btn('Share the code by text', '', async () => {
+        try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+        try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it into a text message.'; } catch (e) { msg.textContent = text; }
+      }), msg,
+      btn("Everyone's in. Start", 'btn-primary', () => { G = VG.newGame({ seats, sameMap: setup.sameMap, mode: 'linked', me: 0 }, hostSeed); screen = null; save(); render(); }),
+      btn('Back to setup', '', () => { screen = null; render(); }));
+    focusTop();
+  }
+  function joinScreen(view) {
+    const inp = el('input', { type: 'text', class: 'code', id: 'codeIn', maxlength: 14, autocomplete: 'off', spellcheck: 'false', autocapitalize: 'characters', placeholder: 'XXXX-XXXX-XXX', value: joinState.code });
+    const msg = el('p', { class: 'msg', role: 'alert' });
+    const after = el('div', { class: 'stack' });
+    const check = () => {
+      joinState.code = inp.value; const r = VG.decode(inp.value);
+      if (r.err) { joinState.ok = null; msg.className = 'msg bad'; msg.textContent = r.err; after.innerHTML = ''; return; }
+      joinState.ok = r; msg.className = 'msg good'; msg.textContent = `Code works. ${plural(r.kinds.length, 'player')}, ${r.sameMap ? 'same map for all' : 'each player has their own map'}.`;
+      drawAfter();
+    };
+    function drawAfter() {
+      const r = joinState.ok; after.innerHTML = '';
+      after.append(el('p', { class: 'small muted' }, "Type everyone's names in the same order as the host's phone."));
+      r.kinds.forEach((k, i) => {
+        if (k) { after.append(el('p', {}, `Player ${i + 1}: ${VG.ROBOT_NAMES[i]} (robot, ${VG.LEVELS[k - 1]})`)); return; }
+        const n = el('input', { type: 'text', maxlength: 14, autocomplete: 'off', 'aria-label': `Player ${i + 1} name`, placeholder: `Player ${i + 1}`, value: joinState.names[i] || '' });
+        n.addEventListener('input', () => { joinState.names[i] = n.value; });
+        after.append(el('div', { class: 'stack', style: 'gap:4px' }, el('label', {}, `Player ${i + 1}${i === 0 ? ' (the host)' : ''}`), n));
+      });
+      const people = r.kinds.map((k, i) => [k, i]).filter(([k, i]) => !k && i > 0);
+      if (joinState.me === null && people.length === 1) joinState.me = people[0][1];
+      after.append(seg('Which player are you?', people.map(([k, i]) => [i, `Player ${i + 1}`]), joinState.me, v => { joinState.me = v; drawAfter(); }),
+        btn('Start', 'btn-primary', () => {
+          if (joinState.me === null) { alertBox('Choose which player you are first.'); return; }
+          const seats = VG.seatsFromKinds(r.kinds, r.kinds.map((k, i) => (joinState.names[i] || '').trim()));
+          G = VG.newGame({ seats, sameMap: r.sameMap, mode: 'linked', me: joinState.me }, r.seed); screen = null; save(); render();
+        }));
+    }
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+    view.append(el('h2', {}, 'Join a linked game'), el('p', {}, 'Get on a call with the other players, then type the code the host reads out.'),
+      el('div', { class: 'stack', style: 'gap:4px' }, el('label', { for: 'codeIn' }, 'Game code'), inp), btn('Check the code', 'btn-primary', check), msg, after,
+      btn('Back to setup', '', () => { screen = null; render(); }));
+    if (joinState.ok) check();
+    focusTop();
+  }
+
+  /* ---------- people chips ---------- */
+  function chips(active) {
+    return el('div', { class: 'chips' }, G.cfg.seats.map((x, i) => {
+      const sh = G.sheets[i], sc = sh ? VY.sheetScore(sh, VG.mapFor(G, i)).base : null;
+      return el('button', { type: 'button', class: 'chip' + (i === active ? ' on' : ''), onclick: sh ? () => viewSheet(i) : null, 'aria-label': `${x.name}${sh ? `, ${sc} points so far. Tap to see their map.` : ''}` },
+        el('span', { class: 'n' }, x.name), el('span', { class: 's' }, x.kind === 'robot' ? `Robot · ${sc}` : sh ? `${sc} points` : 'other phone'));
+    }));
+  }
+  function viewSheet(i) {
+    const m = VG.mapFor(G, i), sh = G.sheets[i];
+    openDlg(el('h2', {}, `${G.cfg.seats[i].name}'s vineyard`), scoreLine(sh, m), drawMap(m, sh), workersGrid(sh, G.year), resources(sh, m), btn('Close', '', closeDlg));
+  }
+  function robotNews() {
+    const items = G.log.filter(l => l.t === 'robot' && l.y === G.year).map(l => {
+      const m = VG.mapFor(G, l.s), parts = [];
+      l.wines.forEach(i => parts.push(`made a ${wineName(m, i)}`));
+      if (l.gain) parts.push(`gathered ${plural(l.gain.n, VY.RES_NAME[l.gain.res].toLowerCase().replace(/s$/, ''), VY.RES_NAME[l.gain.res].toLowerCase())}`);
+      return `${G.cfg.seats[l.s].name} ${parts.length ? parts.join(' and ') : 'rested this year'}.`;
+    });
+    return items.length ? el('div', { class: 'panel log' }, el('b', {}, 'Robots this year'), items.map(t => el('span', {}, t))) : '';
+  }
+
+  /* ---------- leader and year-13 picks ---------- */
+  function leaderScreen(view, need) {
+    const L = need.seat, nm = G.cfg.seats[L].name, kind = need.kind, y = G.year;
+    const me = G.cfg.mode === 'linked' ? G.cfg.me : L;
+    const m = VG.mapFor(G, me), sh = G.sheets[me];
+    const fixed = kind === 'region' ? (m.schedRes[y] && `The resource is ${VY.RES_NAME[m.schedRes[y]]}.`) : (m.schedRegion[y] && `The region is ${VY.REGION_NAME[m.schedRegion[y]]}.`);
+    const opts = kind === 'region' ? VY.REGIONS.map(r => [r, VY.REGION_NAME[r]]) : VY.RES.map(r => [r, VY.RES_NAME[r]]);
+    view.append(chips(L), el('h2', {}, need.t === 'relay' ? `Year ${yr(y)} · ${nm} leads` : `Year ${yr(y)} · ${nm}, you lead`),
+      el('p', {}, need.t === 'relay' ? `${nm} is choosing this year's ${kind === 'region' ? 'region' : 'resource'} on their phone. Tap what ${nm} picks.` : `Choose this year's ${kind === 'region' ? 'region' : 'resource'} for everyone.`),
+      G.cfg.sameMap || G.cfg.mode === 'linked' ? el('p', { class: 'muted small' }, fixed || '') : el('p', { class: 'muted small' }, 'Each player has their own map, so the other half of the year may differ by player.'),
+      el('div', { class: 'stack' }, opts.map(([v, t]) => btn(t, 'btn-primary', () => { VG.setLeaderPick(G, v); save(); announce(`${nm} chose ${t}.`); render(); }))),
+      robotNews(), el('h3', {}, need.t === 'relay' ? 'Your map' : `${nm}'s map`), scoreLine(sh, m), drawMap(m, sh), legend(), workersGrid(sh, y));
+    focusTop();
+  }
+  function pick13Screen(view, seat) {
+    const m = VG.mapFor(G, seat), sh = G.sheets[seat], nm = G.cfg.seats[seat].name;
+    const pickS = G._p13 && G._p13.seat === seat ? G._p13 : (G._p13 = { seat, region: null, res: null });
+    view.append(chips(seat), el('h2', {}, `Year ${yr(13)} · ${nm}, the last year`), el('p', {}, 'In the last year everyone picks their own region and resource.'),
+      seg('Region', VY.REGIONS.map(r => [r, VY.REGION_NAME[r]]), pickS.region, v => { pickS.region = v; render(); }),
+      seg('Resource', VY.RES.map(r => [r, VY.RES_NAME[r]]), pickS.res, v => { pickS.res = v; render(); }),
+      btn('Use these', 'btn-primary', () => { VG.setOwn13(G, seat, pickS.region, pickS.res); delete G._p13; save(); render(); }, { disabled: !(pickS.region && pickS.res) || null }),
+      scoreLine(sh, m), drawMap(m, sh), legend(), workersGrid(sh, 13));
+    focusTop();
+  }
+  function handoffScreen(view, seat) {
+    const nm = G.cfg.seats[seat].name;
+    view.append(el('div', { class: 'handoff' }, el('p', { class: 'muted' }, `Year ${yr(G.year)}`), el('p', {}, 'Pass the phone to'), el('h2', { class: 'big' }, nm),
+      btn(`I'm ${nm}. Show my year`, 'btn-primary', () => { handedTo = seat; render(); })), robotNews());
+    focusTop();
+  }
+
+  /* ---------- a person's year ---------- */
+  function turnScreen(view, seat) {
+    const sh = G.sheets[seat], m = VG.mapFor(G, seat), t = sh.turn, nm = G.cfg.seats[seat].name, y = G.year;
+    const choice = VY.nextChoice(sh, m); save();
+    const av = VY.available(sh, y).filter(w => !(t.wine && t.wine.w === w));
+    let glow = new Set(), onTap = null, prompt;
+    if (choice && choice.t === 'wine') {
+      glow = new Set(choice.options); onTap = i => confirmBonus(seat, i, choice.reward);
+      prompt = el('p', { class: 'prompt bonus' }, `Vine bonus! Tap a glowing ${choice.reward.any ? 'glass for any wine' : `${choice.reward.age}-year ${VY.COLOR_NAME[choice.reward.color]} wine`}, in any region. It costs no worker.`);
+    } else if (choice && choice.t === 'trellis') {
+      setTimeout(() => trellisDlg(seat, choice), 50);
+      prompt = el('div', { class: 'prompt bonus stack' }, el('p', {}, 'Place your new trellis in one of your rows.'), btn('Choose a row', '', () => trellisDlg(seat, choice)));
+    } else {
+      if (!t.wine) for (const w of av) VY.wineOptions(sh, m, t.region, w).forEach(i => glow.add(i));
+      onTap = i => confirmWine(seat, i);
+      const canWine = glow.size > 0, canGain = !t.gain && av.length > 0;
+      prompt = el('p', { class: 'prompt' }, !t.wine && canWine ? `Tap a glowing glass in ${VY.REGION_NAME[t.region]} to make wine${canGain ? `, and gather ${VY.RES_NAME[t.res]} below` : ''}.`
+        : canGain ? `Gather ${VY.RES_NAME[t.res]} below${t.wine ? '' : ` (no ${VY.REGION_NAME[t.region]} wine fits a free worker right now)`}, or tap Done.`
+        : 'Nothing left to do this year. Tap Done with this year.');
+    }
+    const leaderNote = y === 13 ? 'your own picks' : G.solo && G.leaders[y] !== 0 ? 'rolled at random' : `${G.cfg.seats[G.leaders[y]].name} led`;
+    view.append(chips(seat),
+      el('div', { class: 'yearcard' }, el('h2', {}, `Year ${yr(y)} · ${nm}`), el('div', { class: 'yearline' }, tagRegion(t.region), tagRes(t.res), el('span', { class: 'small muted' }, leaderNote))),
+      robotNews(), prompt, drawMap(m, sh, { glow, onTap }), legend());
+    // actions
+    const act = el('div', { class: 'panel stack' });
+    act.append(el('h3', {}, 'This year'));
+    act.append(el('p', {}, t.wine ? `✔ Made a ${wineName(m, t.wine.node)} with your ${WORKER[t.wine.w].toLowerCase()} worker.` : 'Make wine: tap a glowing glass on the map.'));
+    if (t.gain) act.append(el('p', {}, `✔ Gathered ${plural(t.gain.n, VY.RES_NAME[t.res].toLowerCase().replace(/s$/, ''), VY.RES_NAME[t.res].toLowerCase())} with your ${WORKER[t.gain.w].toLowerCase()} worker.`));
+    else if (av.length && !choice) {
+      if (!av.includes(gainW)) gainW = av.find(w => !VY.wineOptions(sh, m, t.region, w).length) ?? av[0];
+      act.append(el('p', {}, `Gather ${VY.RES_NAME[t.res]}: choose a worker, then how many years.`),
+        seg('Worker', av.map(w => [w, WORKER[w]]), gainW, v => { gainW = v; render(); }),
+        el('div', { class: 'row' }, [1, 2, 3].map(n => btn(`${n} ${n === 1 ? VY.RES_NAME[t.res].replace(/s$/, '') : VY.RES_NAME[t.res]}`, '', () => {
+          if (VY.gainRes(sh, gainW, n)) { save(); announce(`Gathered ${n} ${VY.RES_NAME[t.res]}.`); render(); }
+        }, { 'aria-label': `Gather ${n} ${VY.RES_NAME[t.res]}, worker busy until ${yr(y + n)}` }))),
+        el('p', { class: 'small muted' }, `Busy for that many years: free again in ${yr(y + 1)}, ${yr(y + 2)}, or ${yr(y + 3)}.`));
+    }
+    act.append(el('div', { class: 'row' }, btn('Start this year over', '', () => { VG.restartTurn(G, seat); save(); render(); }),
+      btn('Done with this year', 'btn-primary', () => finishYear(seat), { disabled: choice ? true : null })));
+    view.append(act, scoreLine(sh, m), workersGrid(sh, y), resources(sh, m));
+    focusTop();
+  }
+  function confirmWine(seat, i) {
+    const sh = G.sheets[seat], m = VG.mapFor(G, seat), n = VY.NODES[i], w = VY.COLORS.indexOf(m.color[i]), y = G.year;
+    openDlg(el('h2', {}, `Make a ${wineName(m, i)}?`),
+      el('p', {}, `Your ${WORKER[w].toLowerCase()} worker will be busy for ${plural(n.age, 'year')}, free again in ${yr(y + n.age)}.${m.cask[i] ? ` It uses ${plural(m.cask[i], 'cask')}.` : ''}`),
+      el('div', { class: 'row' }, btn('Cancel', '', closeDlg), btn('Make wine', 'btn-primary', () => { closeDlg(); if (VY.makeWine(sh, m, w, i)) { save(); announce(`Made a ${wineName(m, i)}.`); } render(); })));
+  }
+  function confirmBonus(seat, i, rw) {
+    const sh = G.sheets[seat], m = VG.mapFor(G, seat);
+    openDlg(el('h2', {}, `Take a ${wineName(m, i)}?`), el('p', {}, `It's free from your vines, in ${VY.REGION_NAME[VY.NODES[i].r]}.${m.cask[i] ? ` It uses ${plural(m.cask[i], 'cask')}.` : ''}`),
+      el('div', { class: 'row' }, btn('Choose another', '', closeDlg), btn('Take this wine', 'btn-primary', () => { closeDlg(); VY.chooseRewardWine(sh, m, i); save(); render(); })));
+  }
+  function trellisDlg(seat, choice) {
+    const sh = G.sheets[seat], m = VG.mapFor(G, seat);
+    openDlg(el('h2', {}, 'Place a trellis'), el('p', {}, choice.left > 1 ? `You have ${choice.left} trellises to place, one at a time.` : 'Choose a row for your trellis.'),
+      el('div', { class: 'stack' }, choice.rows.map(r => btn(`${trellisRule(m.trellis[r])} (${sh.trellis[r]} of 5)`, '', () => { closeDlg(); VY.placeTrellis(sh, r); save(); render(); }))), { modal: true });
+  }
+  function finishYear(seat) {
+    const sh = G.sheets[seat], m = VG.mapFor(G, seat), t = sh.turn;
+    const av = VY.available(sh, G.year).filter(w => !(t.wine && t.wine.w === w));
+    const couldWine = !t.wine && av.some(w => VY.wineOptions(sh, m, t.region, w).length), couldGain = !t.gain && av.length;
+    const go = () => { closeDlg(); if (VG.finishTurn(G, seat)) { handedTo = null; gainW = null; save(); render(); } };
+    if (couldWine || couldGain) openDlg(el('h2', {}, 'Finish the year?'), el('p', {}, `You could still ${[couldWine && 'make wine', couldGain && `gather ${VY.RES_NAME[t.res]}`].filter(Boolean).join(' or ')}. Any free worker will pass this year.`),
+      el('div', { class: 'row' }, btn('Keep playing', '', closeDlg), btn('Finish the year', 'btn-primary', go)));
+    else go();
+  }
+
+  /* ---------- end of the game ---------- */
+  function endScreen(view) {
+    const missing = G.cfg.mode === 'linked' ? G.cfg.seats.map((x, i) => i).filter(i => !G.sheets[i] && !G.others[i]) : [];
+    if (missing.length) {
+      const me = G.cfg.me, sc = VY.sheetScore(G.sheets[me], VG.mapFor(G, me));
+      const form = el('div', { class: 'stack' });
+      const vals = {};
+      missing.forEach(i => {
+        vals[i] = { base: '', longest: '', casks: '' };
+        const f = (k, lab) => { const inp = el('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', 'aria-label': `${G.cfg.seats[i].name}: ${lab}`, placeholder: lab }); inp.addEventListener('input', () => { vals[i][k] = inp.value; }); return el('div', { class: 'stack', style: 'gap:2px' }, el('label', { class: 'small' }, lab), inp); };
+        form.append(el('div', { class: 'panel stack' }, el('h3', {}, G.cfg.seats[i].name), el('div', { class: 'row' }, f('base', 'Points before bonuses'), f('longest', 'Longest tour'), f('casks', 'Casks used'))));
+      });
+      view.append(el('h2', {}, 'Compare with the other phones'),
+        el('div', { class: 'panel stack' }, el('p', {}, 'Read these out to everyone:'), el('p', {}, el('b', {}, `${sc.base} points before bonuses · longest tour ${sc.longest} · ${sc.casks} casks used`))),
+        el('p', {}, 'Then type in what each other player reads out. The bonuses for longest tour, most casks, and fewer leader years are worked out from these.'), form,
+        btn('See final scores', 'btn-primary', () => {
+          for (const i of missing) { const v = vals[i]; G.others[i] = { base: +v.base || 0, longest: +v.longest || 0, casks: +v.casks || 0 }; }
+          save(); render();
+        }));
+      focusTop(); return;
+    }
+    const R = VG.results(G), win = R.filter(r => r.winner);
+    view.append(el('div', { class: 'banner' }, G.solo ? [el('div', { class: 'big' }, `${R[0].total} points`), el('p', {}, R[0].rank)]
+      : [el('div', { class: 'big' }, win.length > 1 ? `Tie: ${win.map(r => r.name).join(' and ')}` : `${win[0].name} wins!`), el('p', {}, `${win[0].total} points`)]));
+    view.append(el('div', { class: 'panel stack' }, el('h3', {}, 'Final scores'), R.slice().sort((a, b) => b.total - a.total).map(r => el('div', { class: 'stack', style: 'gap:2px;border-bottom:1px solid var(--line);padding-bottom:8px' },
+      el('p', {}, el('b', {}, `${r.name}: ${r.total}`)),
+      el('p', { class: 'small muted' }, [r.paths !== undefined ? `paths ${r.paths} · casks used ${r.casks} · trellis ${(r.trellis || []).reduce((a, b) => a + b, 0)}` : `${r.base} before bonuses`,
+        `longest tour ${r.longest}${r.longestBonus ? ' (+3)' : ''}`, r.caskBonus ? (G.solo ? '7+ casks (+3)' : 'most casks (+3)') : null, r.leaderBonus ? 'fewer leader years (+1)' : null].filter(Boolean).join(' · '))))),
+    G.solo ? el('p', { class: 'small muted' }, 'Ranks: 20 Apprentice, 25 Artisan, 30 Winemaker, 35 Master Vintner.') : '');
+    const mine = G.cfg.mode === 'linked' ? G.cfg.me : G.cfg.seats.findIndex(x => x.kind === 'human');
+    view.append(el('div', { class: 'stack' },
+      G.cfg.mode === 'pass' ? btn('Play again with the same players', 'btn-primary', () => { G = VG.newGame({ seats: G.cfg.seats, sameMap: G.cfg.sameMap, mode: 'pass' }, newSeed()); handedTo = null; save(); render(); }) : null,
+      btn('See my vineyard', '', () => viewSheet(mine)),
+      btn('New game setup', '', () => { G = null; drop(KEY); render(); })));
+    focusTop();
+  }
+
+  /* ---------- dialogs ---------- */
+  function openDlg(...kids) {
+    let modal = false; if (kids.length && kids[kids.length - 1] && kids[kids.length - 1].modal) { modal = true; kids.pop(); }
+    const d = $('dlg'), b = $('dlgBody'); b.innerHTML = ''; kids.forEach(k => k && b.append(k)); d.dataset.modal = modal ? '1' : '';
+    if (!d.open) d.showModal(); const f = b.querySelector('button'); if (f) f.focus();
+  }
+  function closeDlg() { const d = $('dlg'); if (d.open) d.close(); }
+  $('dlg').addEventListener('cancel', e => { if ($('dlg').dataset.modal) e.preventDefault(); });
+  const alertBox = t => openDlg(el('p', {}, t), btn('OK', 'btn-primary', closeDlg));
+  function rules() {
+    openDlg(el('h2', {}, 'How to play'), el('ul', {},
+      el('li', {}, el('b', {}, 'Thirteen years. '), 'Each year has a region and a resource. One is printed for the year, and the leader picks the other. Leaders take turns in snake order. In the last year everyone picks both.'),
+      el('li', {}, el('b', {}, 'Three workers. '), 'Red makes red wine, rosé makes rosé, white makes white. Each year you may use one free worker to make wine and one to gather the resource. A worker is free when its box for the year is empty.'),
+      el('li', {}, el('b', {}, 'Making wine. '), 'Pick a glass in the year’s region that matches a free worker. Its number is how many years the worker stays busy. Barrels under a glass are casks it needs.'),
+      el('li', {}, el('b', {}, 'Paths. '), 'When two of your wines are joined by a path, the path fills in and scores 1 point. A letter on the path gives you that resource.'),
+      el('li', {}, el('b', {}, 'Gathering. '), 'Gather 1, 2, or 3 of the year’s resource. The worker is busy that many years.'),
+      el('li', {}, el('b', {}, 'Casks '), 'pay for wines that need them, and each one used is a point. ', el('b', {}, 'Vines '), 'fill left to right, and a marked vine gives a free matching wine anywhere. ', el('b', {}, 'Trellises '), 'fill rows of 5, and a full row scores its bonus.'),
+      el('li', {}, el('b', {}, 'Scoring. '), '1 per filled path, 3 for the longest tour of joined paths, 1 per cask used, 3 for the most casks used, your trellis bonuses, and 1 if you led fewer years than someone else. Solo: the tour and cask bonuses need 7 or more.')),
+      el('p', { class: 'small muted' }, 'Vintage Years is a family-made game inspired by the roll-and-write Bordeaux by Ben Rosset. If you enjoy it, the real book is worth owning.'),
+      btn('Close', '', closeDlg));
+  }
+  $('menuBtn').addEventListener('click', () => {
+    openDlg(el('h2', {}, 'Menu'), btn('How to play', '', () => { closeDlg(); rules(); }),
+      G ? btn('Players and maps', '', () => { closeDlg(); openDlg(el('h2', {}, 'Players'), chips(-1), el('p', { class: 'small muted' }, 'Tap a player to see their vineyard.'), btn('Close', '', closeDlg)); }) : null,
+      G ? btn('Quit this game', '', () => { closeDlg(); openDlg(el('p', {}, 'Quit this game? It cannot be resumed.'), el('div', { class: 'row' }, btn('Keep playing', '', closeDlg), btn('Quit', 'btn-primary', () => { closeDlg(); G = null; drop(KEY); render(); }))); }) : null,
+      btn('Close', '', closeDlg));
+  });
+
+  if (G && G.v !== 1) G = null;
+  render();
+})();
+
+
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
