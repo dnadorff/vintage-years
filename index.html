@@ -125,6 +125,12 @@ dialog::backdrop{background:rgba(15,8,10,.6)}
 .hero{padding:18px 0 4px;display:flex;flex-direction:column;gap:8px}
 .hero .tagline{color:var(--accent);font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.8rem}
 .thinking{font-style:italic;color:var(--muted)}
+
+.coach{background:var(--soft);border-left:5px solid var(--accent);border-radius:12px;padding:12px 14px}
+.coach .btn-small{align-self:flex-start}
+.hint{border:2px solid var(--focus);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.hint b{color:var(--focus)}
+.btn.hinted{outline:3px solid var(--focus);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -136,7 +142,7 @@ dialog::backdrop{background:rgba(15,8,10,.6)}
   </header>
   <div class="sr" role="status" aria-live="polite" id="live"></div>
   <main id="view" class="stack"></main>
-  <p class="small muted center" id="build">Build e023416b · works offline</p>
+  <p class="small muted center" id="build">Build ce1c5dc1 · works offline</p>
   <dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
 </div>
 <script>
@@ -664,6 +670,116 @@ const VG = (() => {
 })();
 if (typeof module !== 'undefined') module.exports = VG;
 
+// Vintage Years: suggested moves with plain-language reasons (used by the tutorial and the Hint button).
+const VH = (() => {
+  const V = (typeof VY !== 'undefined') ? VY : require('./engine.js');
+  const A = (typeof VYAI !== 'undefined') ? VYAI : require('./ai.js');
+  const G_ = (typeof VG !== 'undefined') ? VG : require('./game.js');
+  const WORKER = ['red', 'rosé', 'white'];
+  const yr = y => '’' + String(y).padStart(2, '0');
+  const plural = (n, w, ws) => `${n} ${n === 1 ? w : (ws || w + 's')}`;
+  const wineName = (map, i) => `${V.NODES[i].age}-year ${V.COLOR_NAME[map.color[i]]}`;
+  const resWord = (r, n) => { const w = V.RES_NAME[r].toLowerCase(); return n === 1 ? w.replace(/s$/, '') : w; };
+
+  // What changed between two sheets, in words.
+  function effects(before, after, map) {
+    const b = V.sheetScore(before, map), a = V.sheetScore(after, map), out = [];
+    const paths = a.paths - b.paths;
+    if (paths) out.push(`fills ${plural(paths, 'path')} (+${paths})`);
+    const used = after.caskU - before.caskU;
+    if (used) out.push(`uses ${plural(used, 'cask')} (+${used})`);
+    const bonus = after.made.length - before.made.length - (after._planWine ? 1 : 0);
+    if (bonus > 0) out.push(`earns ${bonus === 1 ? 'a free bonus wine' : bonus + ' free bonus wines'} from your vines`);
+    const trel = a.trellis.reduce((x, y) => x + y, 0) - b.trellis.reduce((x, y) => x + y, 0);
+    const rowsDone = after.trellis.filter(t => t >= V.TRELLIS_ROW).length - before.trellis.filter(t => t >= V.TRELLIS_ROW).length;
+    if (rowsDone > 0) out.push(`completes a trellis row (worth ${trel} so far)`);
+    if (a.longest > b.longest && a.longest >= 4) out.push(`stretches your longest tour to ${a.longest}`);
+    // a vine bonus usually causes the rest, so say it first
+    const bi = out.findIndex(t => /bonus wine/.test(t));
+    if (bi > 0) { const [bt] = out.splice(bi, 1); out.unshift(bt + ', which'); return { text: [out[0] + ' ' + joinAnd(out.slice(1))], points: a.base - b.base }; }
+    return { text: out, points: a.base - b.base };
+  }
+  function describePlan(p, map, y, res) {
+    const parts = [];
+    if (p.wine) parts.push(`make the ${wineName(map, p.wine.node)} in ${V.REGION_NAME[V.NODES[p.wine.node].r]} with your ${WORKER[p.wine.w]} worker (free again in ${yr(y + V.NODES[p.wine.node].age)})`);
+    if (p.gain) parts.push(`gather ${p.gain.n} ${resWord(res, p.gain.n)} with your ${WORKER[p.gain.w]} worker (free again in ${yr(y + p.gain.n)})`);
+    if (p.gainFirst && parts.length === 2) parts.reverse();
+    return parts;
+  }
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const joinAnd = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+
+  // The best move for this person's year, given what they've already done this year.
+  function turnHint(G, seat) {
+    const sh = G.sheets[seat], map = G_.mapFor(G, seat), t = sh.turn;
+    if (!t) return null;
+    const choice = V.nextChoice(sh, map);
+    if (choice) return choiceHint(sh, map, choice, 13 - t.y);
+    const start = G.snap && G.snap.s === seat ? JSON.parse(G.snap.sheet) : sh;
+    const list = A.scored(A.clone(start), map, t.y, t.region, t.res).filter(({ p }) =>
+      (t.wine ? p.wine && p.wine.w === t.wine.w && p.wine.node === t.wine.node : true) &&
+      (t.gain ? p.gain && p.gain.w === t.gain.w && p.gain.n === t.gain.n : true) &&
+      (t.wine && !t.gain ? !p.gainFirst : true));
+    if (!list.length) return { kind: 'done', text: 'You have done what you can this year. Tap Done with this year.' };
+    const p = list[0].p;
+    const todo = { wine: p.wine && !t.wine ? p.wine : null, gain: p.gain && !t.gain ? p.gain : null };
+    // effects of just the steps still to do, starting from where the turn stands now
+    const sim = A.clone(sh); sim._planWine = !!todo.wine;
+    const doGain = () => { if (todo.gain) { V.gainRes(sim, todo.gain.w, todo.gain.n); A.settle(sim, map, 13 - t.y); } };
+    const doWine = () => { if (todo.wine) { V.makeWine(sim, map, todo.wine.w, todo.wine.node); A.settle(sim, map, 13 - t.y); } };
+    if (p.gainFirst) { doGain(); doWine(); } else { doWine(); doGain(); }
+    const fx = effects(sh, sim, map);
+    if (!todo.wine && !todo.gain) return { kind: 'done', text: 'Nothing more is worth doing this year. Tap Done with this year, and any free worker passes.' };
+    const steps = describePlan({ wine: todo.wine, gain: todo.gain, gainFirst: p.gainFirst }, map, t.y, t.res);
+    let text = cap(joinAnd(steps)) + '.';
+    if (fx.text.length) text += ` This ${joinAnd(fx.text)}.`;
+    // why not the other action?
+    const av = V.available(start, t.y);
+    if (!p.wine && !t.wine) {
+      const opts = av.some(w => V.wineOptions(start, map, t.region, w).length);
+      text += opts ? ` None of the ${V.REGION_NAME[t.region]} wines you could make joins your vineyard yet, so keeping that worker free is better.`
+        : ` No free worker matches a wine in ${V.REGION_NAME[t.region]} this year.`;
+    }
+    if (!p.gain && !t.gain && av.length > (p.wine ? 1 : 0)) text += ` Skipping the ${V.RES_NAME[t.res].toLowerCase()} keeps a worker free for a better year.`;
+    if (p.gainFirst && todo.gain) text += ' Gather first, so you have the casks this wine needs.';
+    return { kind: 'turn', wine: todo.wine, gain: todo.gain, gainFirst: !!p.gainFirst, text, points: fx.points };
+  }
+
+  // Which trellis row, or which bonus wine?
+  function choiceHint(sh, map, c, after) {
+    if (c.t === 'trellis') {
+      let best = c.rows[0], bv = -1e9;
+      for (const r of c.rows) { const t = A.clone(sh); V.placeTrellis(t, r); const v = A.value(t, map, after); if (v > bv) { bv = v; best = r; } }
+      const rule = map.trellis[best], have = sh.trellis[best];
+      const match = V.NODES.filter((n, i) => sh.circled[i] && (rule.color ? map.color[i] === rule.color : rule.age ? n.age === rule.age : n.r === rule.region)).length;
+      return { kind: 'trellis', row: best, text: `Put it in the row for ${ruleText(rule)}. It already has ${have} of 5, and ${plural(match, 'wine')} you've made already ${match === 1 ? 'counts' : 'count'} toward it.` };
+    }
+    let best = c.options[0], bv = -1e9;
+    for (const o of c.options) { const t = A.clone(sh); V.chooseRewardWine(t, map, o); A.settle(t, map, after); const v = A.value(t, map, after); if (v > bv) { bv = v; best = o; } }
+    const t = A.clone(sh); t._planWine = true; V.chooseRewardWine(t, map, best);
+    const fx = effects(sh, t, map);
+    return { kind: 'bonus', node: best, text: `Take the ${wineName(map, best)} in ${V.REGION_NAME[V.NODES[best].r]}.${fx.text.length ? ' It ' + joinAnd(fx.text) + '.' : ' It sets up paths for later.'}` };
+  }
+  const ruleText = r => r.color ? `${V.COLOR_NAME[r.color]} wines` : r.age ? `${r.age}-year wines` : `wines in ${V.REGION_NAME[r.region]}`;
+
+  // Leader pick or year-13 pick for this seat's sheet.
+  function pickHint(G, seat, need) {
+    const sh = G.sheets[seat], map = G_.mapFor(G, seat), y = G.year;
+    const regions = need.region ? V.REGIONS : [map.schedRegion[y]];
+    const ress = need.res ? V.RES : [map.schedRes[y]];
+    const opts = [];
+    for (const region of regions) for (const res of ress) { const top = A.scored(A.clone(sh), map, y, region, res)[0]; opts.push({ region, res, v: top.v, p: top.p }); }
+    opts.sort((a, b) => b.v - a.v);
+    const best = opts[0], steps = describePlan(best.p, map, y, best.res);
+    const name = need.region && need.res ? `${V.REGION_NAME[best.region]} and ${V.RES_NAME[best.res]}` : need.region ? V.REGION_NAME[best.region] : V.RES_NAME[best.res];
+    return { kind: 'pick', region: best.region, res: best.res, label: name,
+      text: `Choose ${name}. ${steps.length ? `It lets you ${joinAnd(steps)}.` : 'It keeps your options open.'}${G.cfg.seats.length > 1 && !need.res !== !need.region ? ' Remember, your choice applies to everyone this year.' : ''}` };
+  }
+
+  return { turnHint, choiceHint, pickHint, effects };
+})();
+if (typeof module !== 'undefined') module.exports = VH;
+
 // Vintage Years: screens.
 (() => {
   const $ = id => document.getElementById(id);
@@ -702,6 +818,29 @@ if (typeof module !== 'undefined') module.exports = VG;
   let joinState = null, hostSeed = null;
   let handedTo = null;    // pass mode: which person has the phone
   let gainW = null;
+  let hintOn = null, lastHintSig = null;      // which turn the Hint button is showing for (regular games)
+  const TUTORIAL_SEED = 77;
+  const tut = () => !!(G && G.tutorial);
+  const COACH = {
+    welcome: 'Welcome! You will play 13 years, from \u201901 to \u201913. Each year has a region (Hillside, Riverside, or Meadows) and a resource (casks, vines, or trellises). Your map prints one of the two, and the leader chooses the other. In a solo game you lead some years, and the other years are rolled at random. The suggested move below shows a good choice, but you can pick anything.',
+    leader: 'As leader you choose for everyone at the table. Pick what helps your own vineyard most this year.',
+    workers: 'You have three workers, one per wine color: red, ros\u00e9, and white. In the Workers grid below, an empty box means that worker is free that year. Each year you may use one free worker to make wine and one to gather the year\u2019s resource. On the map, a glass\u2019s number is how many years the wine takes, which is how long the worker stays busy. Glowing glasses are ones you can make right now.',
+    wine: 'You made a wine. It is circled on the map, and its worker\u2019s row shows how long it stays busy. Wines score through paths: when two of your wines are joined by a dotted path, the path fills in for 1 point.',
+    path: 'A path filled in, worth 1 point. A letter on a path (C, V, or T) also gives you that resource for free. Long chains of filled paths make your longest tour, worth 3 more points at the end.',
+    gather: 'Gathering adds that many of the year\u2019s resource, and the worker is busy one year for each. Casks pay for wines with barrels, and each used cask is a point. Vines fill a track that gives free bonus wines. Trellises fill rows that score bonuses at the end.',
+    casks: 'Some glasses show barrels. Those wines need that many casks, so gather casks first. Every cask you use is worth 1 point at the end, and using 7 or more is worth 3 more in a solo game.',
+    bonus: 'Your vines reached a marked space, so you get a free wine. It can be in any region, and it needs no worker. Tap a glowing glass to choose it.',
+    trellis: 'Each trellis goes in one of three rows. A full row of 5 scores its bonus at the end, such as 1 point per white wine. Choose a row you can fill that matches wines you are making.',
+    rolled: 'You do not lead this year, so the other half of the year was rolled at random. In a game with other players, the leader would choose it.',
+    year13: 'This is the last year. You choose both the region and the resource for yourself. Jobs can run past \u201913, so a 3-year wine made now still counts.',
+  };
+  function coach(keys) {
+    if (!tut()) return '';
+    const k = keys.find(x => COACH[x] && !G.tut.seen[x]); if (!k) return '';
+    return el('div', { class: 'coach stack', role: 'note' }, el('b', {}, 'Coach'), el('p', {}, COACH[k]),
+      btn('Got it', 'btn-small', () => { G.tut.seen[k] = true; save(); render(); }));
+  }
+  const hintBox = (h, extra) => el('div', { class: 'hint stack', role: 'note' }, el('b', {}, 'Suggested move'), el('p', {}, h.text), extra || '');
   const save = () => { if (G) store(KEY, G); store(SKEY, setup); };
 
   /* ---------- the map ---------- */
@@ -742,12 +881,13 @@ if (typeof module !== 'undefined') module.exports = VG;
         g.append(s('rect', { x: bx, y: by, width: 7, height: 7, rx: 2, fill: c('--cask'), stroke: c('--ink'), 'stroke-width': 0.6 }), s('line', { x1: bx, y1: by + 3.5, x2: bx + 7, y2: by + 3.5, stroke: '#3a2412', 'stroke-width': 0.6 }));
       }
       if (made) g.append(s('ellipse', { cx: x, cy: y + 3, rx: 13, ry: 17, fill: 'none', stroke: c('--ink'), 'stroke-width': 2.2 }));
+      if (opts.hint === i) g.append(s('ellipse', { cx: x, cy: y + 3, rx: 17, ry: 21, fill: 'none', stroke: c('--focus'), 'stroke-width': 3.2 }), s('text', { x: x, y: y - 19, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 800, fill: c('--focus') }, 'TRY'));
       const live = opts.glow && opts.glow.has(i);
       if (live) g.append(s('ellipse', { class: 'glow', cx: x, cy: y + 3, rx: 15, ry: 19 }));
       const t = s('circle', { class: 'tap', cx: x, cy: y + 3, r: 18 });
       const desc = `${wineName(map, i)}, ${VY.REGION_NAME[n.r]}${map.cask[i] ? `, needs ${plural(map.cask[i], 'cask')}` : ''}${made ? ', made' : ''}`;
       if (live && opts.onTap) {
-        g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', desc + '. Tap to choose.');
+        g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', desc + (opts.hint === i ? ', suggested' : '') + '. Tap to choose.');
         g.addEventListener('click', () => opts.onTap(i)); g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); opts.onTap(i); } });
       } else { g.setAttribute('role', 'img'); g.setAttribute('aria-label', desc); }
       g.append(t); svg.append(g);
@@ -803,7 +943,7 @@ if (typeof module !== 'undefined') module.exports = VG;
     setTimeout(() => {
       let need; try { need = VG.step(G); } catch (e) { view.innerHTML = ''; view.append(el('p', {}, 'Something went wrong: ' + e.message)); return; }
       save(); view.innerHTML = '';
-      $('meta').textContent = need.t === 'end' ? 'Game over' : `Year ${yr(G.year)} of ${yr(13)}`;
+      $('meta').textContent = (tut() ? 'Tutorial · ' : '') + (need.t === 'end' ? 'Game over' : `Year ${yr(G.year)} of ${yr(13)}`);
       if (need.t === 'leader' || need.t === 'relay') return leaderScreen(view, need);
       if (need.t === 'pick13') return pick13Screen(view, need.seat);
       if (need.t === 'turn') {
@@ -824,6 +964,9 @@ if (typeof module !== 'undefined') module.exports = VG;
     if (saved && saved.stage !== 'end') view.append(el('div', { class: 'panel stack' }, el('h3', {}, 'A game is in progress'),
       el('p', { class: 'small muted' }, `${saved.cfg.seats.map(x => x.name).join(', ')} · Year ${yr(saved.year)}`),
       el('div', { class: 'row' }, btn('Resume game', 'btn-primary', () => { G = saved; handedTo = null; render(); }), btn('Start over', '', () => { drop(KEY); render(); }))));
+    view.append(el('div', { class: 'panel stack' }, el('h3', {}, 'New to Vintage Years?'),
+      el('p', { class: 'small muted' }, 'Play a short guided game. A coach explains each rule as it comes up and suggests a move every turn, with the reason.'),
+      btn('Learn to play', 'btn-primary', startTutorial)));
     const p = el('div', { class: 'panel stack' }, el('h3', {}, 'Players, in turn order'));
     setup.seats.forEach((st, i) => {
       const nameIn = el('input', { type: 'text', maxlength: 14, autocomplete: 'off', 'aria-label': `Player ${i + 1} name`, placeholder: st.kind === 'robot' ? VG.ROBOT_NAMES[i] : `Player ${i + 1}`, value: st.name || '' });
@@ -847,6 +990,11 @@ if (typeof module !== 'undefined') module.exports = VG;
   }
   function seatsFromSetup() { return setup.seats.map((st, i) => st.kind === 'robot' ? { name: (st.name || '').trim() || VG.ROBOT_NAMES[i], kind: 'robot', level: st.level } : { name: (st.name || '').trim() || `Player ${i + 1}`, kind: 'human' }); }
   const newSeed = () => { try { return crypto.getRandomValues(new Uint32Array(1))[0] >>> 5; } catch (e) { return Math.floor(Math.random() * 134217728); } };
+  function startTutorial() {
+    const nm = (setup.seats.find(x => x.kind === 'human' && (x.name || '').trim()) || {}).name;
+    G = VG.newGame({ seats: [{ name: (nm || 'You').trim(), kind: 'human' }], sameMap: true, mode: 'pass' }, TUTORIAL_SEED);
+    G.tutorial = true; G.tut = { seen: {} }; handedTo = null; save(); render();
+  }
   function startFromSetup() {
     const people = setup.seats.filter(x => x.kind === 'human').length;
     if (people > 1 && setup.mode === 'linked') {
@@ -913,7 +1061,7 @@ if (typeof module !== 'undefined') module.exports = VG;
     return el('div', { class: 'chips' }, G.cfg.seats.map((x, i) => {
       const sh = G.sheets[i], sc = sh ? VY.sheetScore(sh, VG.mapFor(G, i)).base : null;
       return el('button', { type: 'button', class: 'chip' + (i === active ? ' on' : ''), onclick: sh ? () => viewSheet(i) : null, 'aria-label': `${x.name}${sh ? `, ${sc} points so far. Tap to see their map.` : ''}` },
-        el('span', { class: 'n' }, x.name), el('span', { class: 's' }, x.kind === 'robot' ? `Robot · ${sc}` : sh ? `${sc} points` : 'other phone'));
+        el('span', { class: 'n' }, x.name), el('span', { class: 's' }, x.kind === 'robot' ? `Robot · ${sc}` : sh ? plural(sc, 'point') : 'other phone'));
     }));
   }
   function viewSheet(i) {
@@ -937,17 +1085,24 @@ if (typeof module !== 'undefined') module.exports = VG;
     const m = VG.mapFor(G, me), sh = G.sheets[me];
     const fixed = kind === 'region' ? (m.schedRes[y] && `The resource is ${VY.RES_NAME[m.schedRes[y]]}.`) : (m.schedRegion[y] && `The region is ${VY.REGION_NAME[m.schedRegion[y]]}.`);
     const opts = kind === 'region' ? VY.REGIONS.map(r => [r, VY.REGION_NAME[r]]) : VY.RES.map(r => [r, VY.RES_NAME[r]]);
-    view.append(chips(L), el('h2', {}, need.t === 'relay' ? `Year ${yr(y)} · ${nm} leads` : `Year ${yr(y)} · ${nm}, you lead`),
+    const hkey = `lead:${y}`, showH = need.t === 'leader' && (tut() || hintOn === hkey);
+    const h = showH ? VH.pickHint(G, L, { [kind]: true }) : null, sug = h && h[kind];
+    view.append(chips(L), el('h2', {}, need.t === 'relay' ? `Year ${yr(y)} · ${nm} leads` : nm === 'You' ? `Year ${yr(y)} · You lead` : `Year ${yr(y)} · ${nm}, you lead`),
+      coach(['welcome', 'leader']),
       el('p', {}, need.t === 'relay' ? `${nm} is choosing this year's ${kind === 'region' ? 'region' : 'resource'} on their phone. Tap what ${nm} picks.` : `Choose this year's ${kind === 'region' ? 'region' : 'resource'} for everyone.`),
       G.cfg.sameMap || G.cfg.mode === 'linked' ? el('p', { class: 'muted small' }, fixed || '') : el('p', { class: 'muted small' }, 'Each player has their own map, so the other half of the year may differ by player.'),
-      el('div', { class: 'stack' }, opts.map(([v, t]) => btn(t, 'btn-primary', () => { VG.setLeaderPick(G, v); save(); announce(`${nm} chose ${t}.`); render(); }))),
-      robotNews(), el('h3', {}, need.t === 'relay' ? 'Your map' : `${nm}'s map`), scoreLine(sh, m), drawMap(m, sh), legend(), workersGrid(sh, y));
+      h ? hintBox(h) : '',
+      el('div', { class: 'stack' }, opts.map(([v, t]) => btn(t + (sug === v ? ' (suggested)' : ''), 'btn-primary' + (sug === v ? ' hinted' : ''), () => { VG.setLeaderPick(G, v); save(); announce(`${nm} chose ${t}.`); render(); }))),
+      need.t === 'leader' && !tut() && !h ? btn('Show a hint', '', () => { hintOn = hkey; render(); }) : '',
+      robotNews(), el('h3', {}, need.t === 'relay' || nm === 'You' ? 'Your map' : `${nm}'s map`), scoreLine(sh, m), drawMap(m, sh), legend(), workersGrid(sh, y));
     focusTop();
   }
   function pick13Screen(view, seat) {
     const m = VG.mapFor(G, seat), sh = G.sheets[seat], nm = G.cfg.seats[seat].name;
     const pickS = G._p13 && G._p13.seat === seat ? G._p13 : (G._p13 = { seat, region: null, res: null });
-    view.append(chips(seat), el('h2', {}, `Year ${yr(13)} · ${nm}, the last year`), el('p', {}, 'In the last year everyone picks their own region and resource.'),
+    const showH = tut() || hintOn === 'p13:' + seat, h = showH ? VH.pickHint(G, seat, { region: true, res: true }) : null;
+    view.append(chips(seat), el('h2', {}, nm === 'You' ? `Year ${yr(13)} · Your last year` : `Year ${yr(13)} · ${nm}, the last year`), el('p', {}, 'In the last year everyone picks their own region and resource.'),
+      coach(['year13']), h ? hintBox(h) : btn('Show a hint', '', () => { hintOn = 'p13:' + seat; render(); }),
       seg('Region', VY.REGIONS.map(r => [r, VY.REGION_NAME[r]]), pickS.region, v => { pickS.region = v; render(); }),
       seg('Resource', VY.RES.map(r => [r, VY.RES_NAME[r]]), pickS.res, v => { pickS.res = v; render(); }),
       btn('Use these', 'btn-primary', () => { VG.setOwn13(G, seat, pickS.region, pickS.res); delete G._p13; save(); render(); }, { disabled: !(pickS.region && pickS.res) || null }),
@@ -982,9 +1137,25 @@ if (typeof module !== 'undefined') module.exports = VG;
         : 'Nothing left to do this year. Tap Done with this year.');
     }
     const leaderNote = y === 13 ? 'your own picks' : G.solo && G.leaders[y] !== 0 ? 'rolled at random' : `${G.cfg.seats[G.leaders[y]].name} led`;
+    // coach notes and the suggested move
+    const keys = [];
+    if (choice) keys.push(choice.t === 'wine' ? 'bonus' : 'trellis');
+    keys.push('workers');
+    if (t.wine) keys.push('wine');
+    if (sh.filled.some(Boolean)) keys.push('path');
+    if (t.gain) keys.push('gather');
+    if (sh.caskT > 0 || [...glow].some(i => m.cask[i])) keys.push('casks');
+    if (G.solo && y !== 13 && G.leaders[y] !== 0) keys.push('rolled');
+    const hkey = `turn:${y}:${seat}`, showH = tut() || hintOn === hkey;
+    const h = showH ? VH.turnHint(G, seat) : null;
+    const hsig = h && h.gain && !t.gain ? `${hkey}:${h.gain.w}:${h.gain.n}` : null;
+    if (hsig && hsig !== lastHintSig) { gainW = h.gain.w; lastHintSig = hsig; }
+    const hintNode = h ? (h.kind === 'bonus' ? h.node : h.kind === 'turn' && h.wine && !(h.gainFirst && h.gain) ? h.wine.node : null) : null;
     view.append(chips(seat),
       el('div', { class: 'yearcard' }, el('h2', {}, `Year ${yr(y)} · ${nm}`), el('div', { class: 'yearline' }, tagRegion(t.region), tagRes(t.res), el('span', { class: 'small muted' }, leaderNote))),
-      robotNews(), prompt, drawMap(m, sh, { glow, onTap }), legend());
+      robotNews(), coach(keys), prompt,
+      h ? hintBox(h, tut() ? '' : btn('Hide hint', 'btn-small', () => { hintOn = null; render(); })) : '',
+      drawMap(m, sh, { glow, onTap, hint: hintNode }), legend());
     // actions
     const act = el('div', { class: 'panel stack' });
     act.append(el('h3', {}, 'This year'));
@@ -994,11 +1165,12 @@ if (typeof module !== 'undefined') module.exports = VG;
       if (!av.includes(gainW)) gainW = av.find(w => !VY.wineOptions(sh, m, t.region, w).length) ?? av[0];
       act.append(el('p', {}, `Gather ${VY.RES_NAME[t.res]}: choose a worker, then how many years.`),
         seg('Worker', av.map(w => [w, WORKER[w]]), gainW, v => { gainW = v; render(); }),
-        el('div', { class: 'row' }, [1, 2, 3].map(n => btn(`${n} ${n === 1 ? VY.RES_NAME[t.res].replace(/s$/, '') : VY.RES_NAME[t.res]}`, '', () => {
+        el('div', { class: 'row' }, [1, 2, 3].map(n => btn(`${n} ${n === 1 ? VY.RES_NAME[t.res].replace(/s$/, '') : VY.RES_NAME[t.res]}`, h && h.gain && h.gain.n === n && !(h.wine && !h.gainFirst) ? 'hinted' : '', () => {
           if (VY.gainRes(sh, gainW, n)) { save(); announce(`Gathered ${n} ${VY.RES_NAME[t.res]}.`); render(); }
         }, { 'aria-label': `Gather ${n} ${VY.RES_NAME[t.res]}, worker busy until ${yr(y + n)}` }))),
         el('p', { class: 'small muted' }, `Busy for that many years: free again in ${yr(y + 1)}, ${yr(y + 2)}, or ${yr(y + 3)}.`));
     }
+    if (!tut() && !h) act.append(btn('Show a hint', '', () => { hintOn = hkey; render(); }));
     act.append(el('div', { class: 'row' }, btn('Start this year over', '', () => { VG.restartTurn(G, seat); save(); render(); }),
       btn('Done with this year', 'btn-primary', () => finishYear(seat), { disabled: choice ? true : null })));
     view.append(act, scoreLine(sh, m), workersGrid(sh, y), resources(sh, m));
@@ -1017,8 +1189,11 @@ if (typeof module !== 'undefined') module.exports = VG;
   }
   function trellisDlg(seat, choice) {
     const sh = G.sheets[seat], m = VG.mapFor(G, seat);
+    if (tut()) { G.tut.seen.trellis = true; save(); }
+    const h = (tut() || hintOn === `turn:${G.year}:${seat}`) ? VH.choiceHint(sh, m, choice, 13 - G.year) : null;
     openDlg(el('h2', {}, 'Place a trellis'), el('p', {}, choice.left > 1 ? `You have ${choice.left} trellises to place, one at a time.` : 'Choose a row for your trellis.'),
-      el('div', { class: 'stack' }, choice.rows.map(r => btn(`${trellisRule(m.trellis[r])} (${sh.trellis[r]} of 5)`, '', () => { closeDlg(); VY.placeTrellis(sh, r); save(); render(); }))), { modal: true });
+      tut() ? el('p', { class: 'small' }, COACH.trellis) : '', h ? hintBox(h) : '',
+      el('div', { class: 'stack' }, choice.rows.map(r => btn(`${trellisRule(m.trellis[r])} (${sh.trellis[r]} of 5)${h && h.row === r ? ' (suggested)' : ''}`, h && h.row === r ? 'hinted' : '', () => { closeDlg(); VY.placeTrellis(sh, r); save(); render(); }))), { modal: true });
   }
   function finishYear(seat) {
     const sh = G.sheets[seat], m = VG.mapFor(G, seat), t = sh.turn;
@@ -1052,6 +1227,9 @@ if (typeof module !== 'undefined') module.exports = VG;
       focusTop(); return;
     }
     const R = VG.results(G), win = R.filter(r => r.winner);
+    if (tut()) view.append(el('div', { class: 'coach stack', role: 'note' }, el('b', {}, 'Coach: how your score adds up'),
+      el('p', {}, 'You get 1 point for each filled path and 1 for each cask you used. A full trellis row scores its bonus. In a solo game, a longest tour of 7 or more paths and using 7 or more casks are worth 3 points each. With other players, those 3 points go to whoever has the longest tour and whoever used the most casks, and leading fewer years than someone else is worth 1.'),
+      el('p', {}, 'That is the whole game. Start a real game from setup, alone or with the family, and use the Hint button any time you want a suggestion.')));
     view.append(el('div', { class: 'banner' }, G.solo ? [el('div', { class: 'big' }, `${R[0].total} points`), el('p', {}, R[0].rank)]
       : [el('div', { class: 'big' }, win.length > 1 ? `Tie: ${win.map(r => r.name).join(' and ')}` : `${win[0].name} wins!`), el('p', {}, `${win[0].total} points`)]));
     view.append(el('div', { class: 'panel stack' }, el('h3', {}, 'Final scores'), R.slice().sort((a, b) => b.total - a.total).map(r => el('div', { class: 'stack', style: 'gap:2px;border-bottom:1px solid var(--line);padding-bottom:8px' },
@@ -1061,9 +1239,9 @@ if (typeof module !== 'undefined') module.exports = VG;
     G.solo ? el('p', { class: 'small muted' }, 'Ranks: 20 Apprentice, 25 Artisan, 30 Winemaker, 35 Master Vintner.') : '');
     const mine = G.cfg.mode === 'linked' ? G.cfg.me : G.cfg.seats.findIndex(x => x.kind === 'human');
     view.append(el('div', { class: 'stack' },
-      G.cfg.mode === 'pass' ? btn('Play again with the same players', 'btn-primary', () => { G = VG.newGame({ seats: G.cfg.seats, sameMap: G.cfg.sameMap, mode: 'pass' }, newSeed()); handedTo = null; save(); render(); }) : null,
+      G.cfg.mode === 'pass' && !tut() ? btn('Play again with the same players', 'btn-primary', () => { G = VG.newGame({ seats: G.cfg.seats, sameMap: G.cfg.sameMap, mode: 'pass' }, newSeed()); handedTo = null; save(); render(); }) : null,
       btn('See my vineyard', '', () => viewSheet(mine)),
-      btn('New game setup', '', () => { G = null; drop(KEY); render(); })));
+      btn(tut() ? 'Play a real game' : 'New game setup', tut() ? 'btn-primary' : '', () => { G = null; drop(KEY); render(); })));
     focusTop();
   }
 

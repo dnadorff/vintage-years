@@ -1,5 +1,5 @@
 // Vintage Years offline cache.
-const CACHE = 'vintage-years-e023416b';
+const CACHE = 'vintage-years-ce1c5dc1';
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-512-maskable.png", "apple-touch-icon.png"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
